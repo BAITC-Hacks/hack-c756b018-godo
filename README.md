@@ -1,4 +1,4 @@
-web application/stitch/projects/2284526729819434208/screens/77d57fde4436458798bf3c404ae0e74c<img width="1376" height="768" alt="image" src="https://github.com/user-attachments/assets/1c25db11-d6cf-4112-905c-19d642c10907" />
+<img width="1376" height="768" alt="image" src="https://github.com/user-attachments/assets/1c25db11-d6cf-4112-905c-19d642c10907" />
 
 # Career Quest
 
