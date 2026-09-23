@@ -33,6 +33,19 @@ AI-навигатор карьерного развития сотруднико
 | Docker Compose | `backend/docker-compose.yml` | Три сервиса: `db`, `backend`, `frontend`; `backend/data` монтируется в контейнер для импорта данных жюри |
 | Jest | `backend/src/**/*.spec.ts` | Юнит-тесты префильтра рекомендаций, импортёра датасета и ролевого guard |
 
+
+2. Backend — каталог backend/
+cd backend
+npm install
+copy .env.example .env    # впишите OPENAI_API_KEY (необязательно, иначе локальный рейтинг)
+npm run start:dev         # watch-режим
+→ API: http://localhost:3000, Swagger: http://localhost:3000/docs. При первом старте в пустую БД сам импортирует демоданные из backend/data/.
+
+3. Frontend — каталог frontend/ (вторая вкладка терминала)
+cd frontend
+npm install
+npm run dev
+→ http://localhost:3001. Все запросы идут на свой же /api/* и проксируются на backend; если backend на другом адресе — BACKEND_URL=http://localhost:3000 npm run dev.
 ## Демо-доступ
 
 Для хакатона — заголовки вместо SSO (осознанное ограничение демо): `X-Role: employee | hr` и `X-Employee-Id` для сотрудника. `RolesGuard` подключён глобально (`APP_GUARD`) и возвращает `403`, если сотрудник лезет в HR-разделы или в чужой профиль. Переключатель роли встроен в интерфейс.
