@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AdiletService } from './adilet.service';
+import { AdiletKbService } from './adilet-kb.service';
 
 @Module({
-  providers: [AdiletService],
-  exports: [AdiletService],
+  providers: [AdiletKbService],
+  exports: [AdiletKbService],
 })
 export class AdiletModule {}
