@@ -19,6 +19,20 @@ export interface EmployeeProfile {
   history: Array<{ eventId: string; title: string; status: string; date: string }>;
 }
 
+export type RecommendationMode = 'simple' | 'multifactor';
+
+export interface RecommendationFactor {
+  type: 'positive' | 'penalty';
+  label: string;
+  detail?: string;
+}
+
+export interface ModelScores {
+  gradeGap?: number;
+  historyPenalty?: number;
+  skillUrgency?: number;
+}
+
 export interface AIRecommendation {
   eventId: string;
   title: string;
@@ -27,6 +41,9 @@ export interface AIRecommendation {
   predictedGain: number;
   priority: number;
   reason: string;
+  breakdown: RecommendationFactor[];
+  modelScores?: ModelScores;
+  source: 'llm' | 'algorithm';
 }
 
 export interface CompleteActivityDto {
@@ -56,4 +73,36 @@ export interface HrAnalytics {
   employeesAtRisk: HrEmployeeSummary[];
   withoutRecommendations: Array<{ id: string; name: string }>;
   participationByActivity: Array<{ eventId: string; title: string; completed: number; skipped: number; refused: number }>;
+}
+
+export interface SimulationResult {
+  employeeId: string;
+  name: string;
+  currentRole: string;
+  currentGrade: string;
+  targetRole: string;
+  targetGrade: string;
+  readinessScore: number;
+  availableRoles: string[];
+  availableGrades: string[];
+  skills: SkillProgress[];
+  recommendations: AIRecommendation[];
+  ignoredSkills: Array<{ skillId: string; skillName: string; missedOrRefused: number }>;
+}
+
+export interface GroupTrainingPlan {
+  title: string;
+  summary: string;
+  modules: Array<{ title: string; description: string }>;
+  invitationText: string;
+}
+
+export interface GroupTraining {
+  skillId: string;
+  skillName: string;
+  totalGap: number;
+  affectedCount: number;
+  affected: Array<{ id: string; name: string; role: string; currentGrade: string; targetGrade: string; currentLevel: number; requiredLevel: number; gap: number; readinessScore: number }>;
+  suggestedEvents: Array<{ eventId: string; title: string; type: string; gain: number; maxLevel: number }>;
+  plan: GroupTrainingPlan;
 }
