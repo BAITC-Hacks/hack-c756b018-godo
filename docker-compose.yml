@@ -31,6 +31,8 @@ services:
       OPENAI_MAX_TOKENS: ${OPENAI_MAX_TOKENS:-4096}
     depends_on:
       - db
+    volumes:
+      - ./data:/app/data:ro
 
   frontend:
     build:
