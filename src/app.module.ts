@@ -1,66 +1,41 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { resolveDatabaseUrlFromEnv } from './config/app.config';
-import { AdiletModule } from './modules/adilet-kb/adilet.module';
+import { aiConfig } from './config/ai.config';
+import { Employee } from './entities/employee.entity';
+import { Skill } from './entities/skill.entity';
+import { EmployeeSkill } from './entities/employee-skill.entity';
+import { Event } from './entities/event.entity';
+import { ActivityHistory } from './entities/activity-history.entity';
+import { EmployeeModule } from './modules/employee/employee.module';
+import { HrModule } from './modules/hr/hr.module';
 import { AiModule } from './modules/ai/ai.module';
-import { CasesModule } from './modules/cases/cases.module';
-import { DocumentsModule } from './modules/documents/documents.module';
-import { EvidenceModule } from './modules/evidence/evidence.module';
-import { LegalModule } from './modules/legal/legal.module';
+import { ImportModule } from './modules/import/import.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        if (configService.get<string>('DB_TYPE') !== 'postgres') {
-          // локальный режим для разработки и e2e-тестов (временный SQLite)
-          return {
-            type: 'sqlite' as const,
-            database: configService.get<string>('DB_PATH') ?? 'db.sqlite',
-            autoLoadEntities: true,
-            synchronize: true,
-          };
-        }
-
-        const env = configService.get<string>('DB_URL')
-          ? { DB_URL: configService.get<string>('DB_URL') ?? '' }
-          : {
-              DB_HOST: configService.get<string>('DB_HOST') ?? '',
-              DB_PORT: configService.get<string>('DB_PORT') ?? '5432',
-              DB_USER: configService.get<string>('DB_USER') ?? 'postgres',
-              DB_PASSWORD: configService.get<string>('DB_PASSWORD') ?? '',
-              DB_NAME: configService.get<string>('DB_NAME') ?? 'postgres',
-            };
-        const url = resolveDatabaseUrlFromEnv(env);
-        if (!url) {
-          throw new Error(
-            'DB_TYPE=postgres, но строка подключения не задана. ' +
-              'Укажите DB_URL (postgresql://...) или DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME в .env.',
-          );
-        }
-
-        // Supabase требует SSL; rejectUnauthorized: false — из-за chain-сертификатов пула
-        const ssl = (configService.get<string>('DB_SSL') ?? 'true') !== 'false';
-        return {
-          type: 'postgres' as const,
-          url,
-          ssl: ssl ? { rejectUnauthorized: false } : false,
-          autoLoadEntities: true,
-          synchronize: true,
-        };
-      },
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [aiConfig],
     }),
-    AdiletModule,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: () => ({
+        type: 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        port: Number(process.env.DB_PORT) || 5432,
+        username: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || 'postgres_password',
+        database: process.env.DB_NAME || 'career_quest',
+        entities: [Employee, Skill, EmployeeSkill, Event, ActivityHistory],
+        synchronize: true, // Включаем авто-миграции для быстрого старта на хакатоне
+      }),
+    }),
+    EmployeeModule,
+    HrModule,
     AiModule,
-    LegalModule,
-    CasesModule,
-    EvidenceModule,
-    DocumentsModule,
+    ImportModule,
   ],
-  controllers: [AppController],
 })
 export class AppModule {}

@@ -1,42 +1,30 @@
-import 'dotenv/config';
-import 'reflect-metadata';
-import { mkdirSync } from 'node:fs';
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { appConfig } from './config/app.config';
 
-async function bootstrap(): Promise<void> {
-  mkdirSync(appConfig.uploadDir, { recursive: true });
-
+async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix(appConfig.apiPrefix);
-  app.enableCors({ origin: true, credentials: true });
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
+  // Валидация DTO
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle(appConfig.swaggerTitle)
-    .setDescription(
-      'API юридического ассистента «Қорғау AI» — анализ обращений, база знаний законов РК, генерация документов (MVP для хакатона).',
-    )
-    .setVersion(appConfig.version)
+  // CORS
+  app.enableCors();
+
+  // Настройка Swagger для удобства тестирования жюри
+  const config = new DocumentBuilder()
+    .setTitle('Career Quest API')
+    .setDescription('AI-навигатор карьерного развития сотрудников — Halyk Bank Track')
+    .setVersion('1.0')
     .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup(appConfig.swaggerPath, app, document);
 
-  await app.listen(appConfig.port);
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
 
-  const url = await app.getUrl();
-  console.log(`API:     ${url}/${appConfig.apiPrefix}`);
-  console.log(`Swagger: ${url}/${appConfig.swaggerPath}`);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`🚀 Сервер запущен на порту: http://localhost:${port}`);
+  console.log(`📚 Документация Swagger доступна по адресу: http://localhost:${port}/docs`);
 }
-
-void bootstrap();
+bootstrap();

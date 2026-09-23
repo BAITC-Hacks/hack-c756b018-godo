@@ -1,7 +1,7 @@
 {
-  "name": "qorgau-ai-backend",
-  "version": "0.1.0",
-  "description": "Қорғау AI — backend (NestJS): юридический ассистент по законам РК",
+  "name": "career-quest-backend",
+  "version": "1.0.0",
+  "description": "Career Quest — backend (NestJS): AI-навигатор карьерного развития (Halyk Bank Track)",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -48,6 +48,7 @@
     "typescript": "^5.7.2"
   },
   "jest": {
+    "passWithNoTests": true,
     "moduleFileExtensions": [
       "js",
       "json",
