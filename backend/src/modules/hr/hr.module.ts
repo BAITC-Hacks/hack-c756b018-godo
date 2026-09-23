@@ -8,6 +8,7 @@ import { SkillRequirementEntity } from '../../storage/entities/skill-requirement
 import { ActivityHistoryEntity } from '../../storage/entities/activity-history.entity';
 import { RecommendationsModule } from '../recommendations/recommendations.module';
 import { DataImporterModule } from '../data-importer/data-importer.module';
+import { EmployeeModule } from '../employee/employee.module';
 
-@Module({ imports: [TypeOrmModule.forFeature([EmployeeEntity, EventEntity, SkillRequirementEntity, ActivityHistoryEntity]), RecommendationsModule, DataImporterModule], controllers: [HrController], providers: [HrService] })
+@Module({ imports: [TypeOrmModule.forFeature([EmployeeEntity, EventEntity, SkillRequirementEntity, ActivityHistoryEntity]), RecommendationsModule, DataImporterModule, EmployeeModule], controllers: [HrController], providers: [HrService] })
 export class HrModule {}

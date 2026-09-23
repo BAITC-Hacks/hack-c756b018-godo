@@ -10,5 +10,5 @@ import { ActivityHistoryEntity } from '../../storage/entities/activity-history.e
 import { RecommendationsModule } from '../recommendations/recommendations.module';
 import { ProgressModule } from '../progress/progress.module';
 
-@Module({ imports: [TypeOrmModule.forFeature([EmployeeEntity, EventEntity, SkillRequirementEntity, ActivityHistoryEntity]), RecommendationsModule, ProgressModule], controllers: [EmployeeController, ActivitiesController], providers: [EmployeeService] })
+@Module({ imports: [TypeOrmModule.forFeature([EmployeeEntity, EventEntity, SkillRequirementEntity, ActivityHistoryEntity]), RecommendationsModule, ProgressModule], controllers: [EmployeeController, ActivitiesController], providers: [EmployeeService], exports: [EmployeeService] })
 export class EmployeeModule {}

@@ -18,8 +18,7 @@ export class EmployeeController {
   @Roles(UserRole.EMPLOYEE, UserRole.HR)
   @ApiOperation({ summary: 'Получение профиля сотрудника и его навыков' })
   getProfile(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    // The guard authorizes HR access; services retain their ownership invariant.
-    return this.employeeService.getProfile(id, user.role === UserRole.HR ? id : user.id);
+    return this.employeeService.getProfile(id, user.id, user.role);
   }
 
   @Get(':id/recommendations')
