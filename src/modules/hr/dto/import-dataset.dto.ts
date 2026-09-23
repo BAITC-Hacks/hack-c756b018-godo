@@ -9,12 +9,10 @@ export class ImportDatasetDto {
 
   @ApiProperty({ description: 'Массив событий из events.json' })
   @IsArray()
-  @IsNotEmpty()
   events: any[];
 
   @ApiProperty({ description: 'Массив навыков из skills.json' })
   @IsArray()
-  @IsNotEmpty()
   skills: any[];
 
   @ApiProperty({ description: 'История из activity_history.csv' })

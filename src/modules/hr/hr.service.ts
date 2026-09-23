@@ -55,6 +55,17 @@ export class HrService {
       take: 10,
     });
 
+    const employees = await this.getEmployees();
+    const participation = await this.employeeRepo.find({ relations: ['history'] });
+    const counts = new Map<string, { completed: number; skipped: number; refused: number }>();
+    for (const employee of participation) for (const item of employee.history) {
+      const count = counts.get(item.eventId) || { completed: 0, skipped: 0, refused: 0 };
+      if (item.status === ActivityStatus.COMPLETED) count.completed++;
+      if (item.status === ActivityStatus.SKIPPED) count.skipped++;
+      if (item.status === ActivityStatus.REFUSED) count.refused++;
+      counts.set(item.eventId, count);
+    }
+    const events = await this.eventRepo.find();
     return {
       laggingSkills: rawGaps.map((g) => ({
         skillId: g.skillId,
@@ -68,6 +79,8 @@ export class HrService {
         currentGrade: e.currentGrade,
         readinessScore: e.readinessScore,
       })),
+      withoutRecommendations: employees.filter((employee) => !employee.hasRecommendations).map((employee) => ({ id: employee.id, name: employee.name })),
+      participationByActivity: events.map((event) => ({ eventId: event.id, title: event.title, ...(counts.get(event.id) || { completed: 0, skipped: 0, refused: 0 }) })),
     };
   }
 }

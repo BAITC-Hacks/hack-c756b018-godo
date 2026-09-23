@@ -10,4 +10,7 @@ export class Skill {
 
   @Column({ default: 'hard' })
   category: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  requirements: Record<string, unknown> | null;
 }

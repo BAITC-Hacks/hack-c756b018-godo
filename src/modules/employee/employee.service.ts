@@ -40,6 +40,7 @@ export class EmployeeService {
       targetGrade: employee.targetGrade,
       tenureMonths: employee.tenureMonths,
       readinessScore: employee.readinessScore,
+      history: (await this.historyRepo.find({ where: { employeeId }, relations: ['event'], order: { date: 'DESC' } })).map((h) => ({ eventId: h.eventId, title: h.event?.title || h.eventId, status: h.status, date: h.date })),
       skills: employee.skills.map((es) => ({
         skillId: es.skillId,
         skillName: es.skill?.name || es.skillId,
@@ -77,6 +78,7 @@ export class EmployeeService {
       eventId: h.eventId,
       status: h.status,
       date: h.date,
+      event: h.event,
     }));
 
     const recommendations = await this.aiService.generateExplainableRecommendations(
@@ -86,7 +88,7 @@ export class EmployeeService {
         currentGrade: employee.currentGrade,
         targetGrade: employee.targetGrade,
         tenureMonths: employee.tenureMonths,
-        skills: employee.skills.map((s) => ({ skillId: s.skillId, level: s.currentLevel })),
+        skills: employee.skills.map((s) => ({ skillId: s.skillId, name: s.skill?.name || s.skillId, level: s.currentLevel })),
       },
       targetRequirements,
       historyData,

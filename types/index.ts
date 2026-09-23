@@ -15,6 +15,7 @@ export interface EmployeeProfile {
   tenureMonths: number;
   readinessScore: number;
   skills: SkillProgress[];
+  history: Array<{ eventId: string; title: string; status: string; date: string }>;
 }
 
 export interface AIRecommendation {
@@ -52,4 +53,6 @@ export interface HrEmployeeSummary {
 export interface HrAnalytics {
   laggingSkills: Array<{ skillId: string; skillName: string; affectedEmployees: number }>;
   employeesAtRisk: HrEmployeeSummary[];
+  withoutRecommendations: Array<{ id: string; name: string }>;
+  participationByActivity: Array<{ eventId: string; title: string; completed: number; skipped: number; refused: number }>;
 }

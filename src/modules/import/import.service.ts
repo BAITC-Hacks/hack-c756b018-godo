@@ -8,6 +8,18 @@ import { Event } from '../../entities/event.entity';
 import { ActivityHistory } from '../../entities/activity-history.entity';
 import { ImportDatasetDto } from '../hr/dto/import-dataset.dto';
 
+const GRADE_ORDER = ['Intern', 'Junior', 'Middle', 'Senior', 'Lead', 'Principal'];
+function nextGrade(grade: string) {
+  const index = GRADE_ORDER.findIndex((value) => value.toLowerCase() === grade.toLowerCase());
+  return index >= 0 && index < GRADE_ORDER.length - 1 ? GRADE_ORDER[index + 1] : grade;
+}
+function requiredLevel(skill: any, role: string, grade: string): number {
+  const matrix = skill?.requirements || skill?.grade_requirements || skill?.requirements_by_grade || skill?.levels || {};
+  const byRole = matrix[role] || matrix[role?.toLowerCase()] || matrix;
+  const value = byRole?.[grade] ?? byRole?.[grade?.toLowerCase()] ?? skill?.required_level ?? skill?.requiredLevel;
+  return Math.max(0, Math.min(5, Number(typeof value === 'object' ? value?.level ?? value?.required_level : value) || 0));
+}
+
 @Injectable()
 export class ImportService {
   private readonly logger = new Logger(ImportService.name);
@@ -20,12 +32,16 @@ export class ImportService {
     await queryRunner.startTransaction();
 
     try {
+      const existingSkills = await queryRunner.manager.find(Skill);
+      const skillsById = new Map(existingSkills.map((skill) => [skill.id, skill as any]));
+      for (const skill of dto.skills) skillsById.set(skill.id || skill.skill_id, skill);
       // 1. Сохраняем навыки
       for (const s of dto.skills) {
         await queryRunner.manager.save(Skill, {
-          id: s.id,
-          name: s.name,
+          id: s.id || s.skill_id,
+          name: s.name || s.title || s.id || s.skill_id,
           category: s.category || 'hard',
+          requirements: s.requirements || s.grade_requirements || s.requirements_by_grade || s.levels || null,
         });
       }
 
@@ -35,27 +51,32 @@ export class ImportService {
           id: ev.id || ev.event_id,
           title: ev.title,
           type: ev.type || 'training',
-          targetAudience: ev.target_audience || ['Middle'],
+          targetAudience: ev.target_audience || ev.targetAudience || ['all'],
           skillsDeveloped: (ev.skills_developed || ev.skillsDeveloped || []).map((skill: any) => ({
             skillId: skill.skillId || skill.skill_id,
             gain: Number(skill.gain) || 1,
-            maxLevel: Number(skill.maxLevel || skill.max_level) || 5,
+            maxLevel: Number(skill.maxLevel ?? skill.max_level ?? 5),
           })),
         });
       }
 
       // 3. Сохраняем сотрудников и их навыки
       for (const emp of dto.employees) {
+        const grade = emp.grade || emp.currentGrade || 'Middle';
+        const targetGrade = emp.target_grade || emp.targetGrade || nextGrade(grade);
+        const progress = Object.entries(emp.skills || {}).map(([id, level]) => {
+          const required = requiredLevel(skillsById.get(id), emp.role, targetGrade);
+          return { current: Number(level), required: required || Math.max(1, Math.min(5, Number(level) + 1)) };
+        });
+        const totalRequired = progress.reduce((sum, item) => sum + item.required, 0);
         const newEmp = await queryRunner.manager.save(Employee, {
           id: emp.employee_id || emp.id,
           name: emp.name || `Сотрудник ${emp.employee_id}`,
           role: emp.role,
-          currentGrade: emp.grade || 'Middle',
-          targetGrade: 'Senior',
-          tenureMonths: emp.tenure_months || 12,
-          readinessScore: emp.skills && Object.keys(emp.skills).length > 0
-            ? Math.round(Object.values(emp.skills).reduce<number>((sum, level) => sum + Math.min(Number(level), 4), 0) / (Object.keys(emp.skills).length * 4) * 100)
-            : 0,
+          currentGrade: grade,
+          targetGrade,
+          tenureMonths: emp.tenure_months ?? emp.tenureMonths ?? 0,
+          readinessScore: totalRequired ? Math.round(progress.reduce((sum, item) => sum + Math.min(item.current, item.required), 0) / totalRequired * 100) : 100,
         });
 
         await queryRunner.manager.delete(EmployeeSkill, { employeeId: newEmp.id });
@@ -67,7 +88,7 @@ export class ImportService {
               employeeId: newEmp.id,
               skillId: skillId,
               currentLevel: Number(level),
-              requiredLevel: 4, // Базовое требование для теста
+              requiredLevel: requiredLevel(skillsById.get(skillId), emp.role, targetGrade) || Math.max(1, Math.min(5, Number(level) + 1)),
             });
           }
         }
