@@ -1,12 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AdiletModule } from '../adilet-kb/adilet.module';
+import { AiModule } from '../ai/ai.module';
+import { EvidenceEntity } from '../evidence/entities/evidence.entity';
+import { LegalModule } from '../legal/legal.module';
 import { CasesController } from './cases.controller';
 import { CasesService } from './cases.service';
 import { CaseEntity } from './entities/case.entity';
+import { CaseMessageEntity } from './entities/case-message.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CaseEntity]), AdiletModule],
+  imports: [
+    TypeOrmModule.forFeature([CaseEntity, CaseMessageEntity, EvidenceEntity]),
+    AiModule,
+    LegalModule,
+  ],
   controllers: [CasesController],
   providers: [CasesService],
   exports: [CasesService],
