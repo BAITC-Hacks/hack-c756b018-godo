@@ -18,7 +18,7 @@ it('prioritizes a grade gap over a lower skill repeatedly skipped', async () => 
 
 it('uses the configured OpenAI model and token limit, then validates selected IDs', async () => {
   const config = { get: (key: string) => ({ 'ai.provider': 'openai', 'ai.openai.apiKey': 'test-key', 'ai.openai.model': 'gpt-4o-mini', 'ai.openai.maxTokens': 123 }[key]) };
-  const request = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: '["SPEAK","SYSTEM"]' } }] }) } as Response);
+  const request = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, status: 200, headers: new Headers({ 'x-request-id': 'req_test' }), json: async () => ({ choices: [{ message: { content: '["SPEAK","SYSTEM"]' } }], usage: { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13 } }) } as Response);
   try {
     const service = new AiService(config as ConfigService);
     const result = await service.generateExplainableRecommendations(
@@ -29,5 +29,6 @@ it('uses the configured OpenAI model and token limit, then validates selected ID
     expect(result[0].eventId).toBe('SPEAK');
     const body = JSON.parse((request.mock.calls[0][1] as RequestInit).body as string);
     expect(body).toMatchObject({ model: 'gpt-4o-mini', max_completion_tokens: 123 });
+    expect((request.mock.calls[0][1] as RequestInit).headers).toEqual(expect.objectContaining({ 'X-Client-Request-Id': expect.any(String) }));
   } finally { request.mockRestore(); }
 });

@@ -30,6 +30,14 @@ describe('EmployeeService activity flow', () => {
     expect(aiService.generateExplainableRecommendations.mock.calls[0][3]).toEqual([event]);
   });
 
+  it('does not call OpenAI when the employee has no skills', async () => {
+    const { service, employeeRepo, eventRepo, aiService } = createService();
+    employeeRepo.findOne.mockResolvedValue({ id: '1', role: 'admin', currentGrade: '0', targetGrade: '1', skills: [], history: [] });
+    eventRepo.find.mockResolvedValue([event]);
+    await expect(service.getRecommendations('1', '1')).resolves.toEqual([]);
+    expect(aiService.generateExplainableRecommendations).not.toHaveBeenCalled();
+  });
+
   it('returns updated skill metadata and readiness after completion', async () => {
     const { service, employeeRepo, eventRepo, historyRepo, skillRepo } = createService();
     const currentSkill = { ...skill };

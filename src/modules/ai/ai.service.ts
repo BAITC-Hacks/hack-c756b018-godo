@@ -1,5 +1,6 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'node:crypto';
 
 export interface AIRecommendationOutput {
   eventId: string;
@@ -52,36 +53,64 @@ export class AiService {
         reason: `${employee.currentGrade} → ${employee.targetGrade}: ${names.get(best.skillId)} сейчас ${best.current}, требуется ${best.target} (разрыв ${best.gap}). ${event.title} даёт до +${best.gain} уровня. ${historyText}` }];
     });
     ranked.sort((a: any, b: any) => b.score - a.score || a.eventId.localeCompare(b.eventId));
+    if (!ranked.length) this.logger.log(`OpenAI skipped employeeId=${employee.id} reason=no_ranked_candidates`);
     const selected = await this.orderWithLlm(ranked, employee);
     return selected.slice(0, 3).map(({ score, ...item }: any, index: number) => ({ ...item, priority: index + 1 }));
   }
 
   private async orderWithLlm(ranked: any[], employee: any): Promise<any[]> {
-    if (this.config?.get<string>('ai.provider') !== 'openai' || !this.config.get<string>('ai.openai.apiKey')) return ranked;
+    if (!ranked.length) return ranked;
+    const provider = this.config?.get<string>('ai.provider');
+    if (provider !== 'openai') {
+      this.logger.log(`OpenAI skipped employeeId=${employee.id} reason=provider_disabled provider=${provider || 'unset'}`);
+      return ranked;
+    }
+    const apiKey = this.config?.get<string>('ai.openai.apiKey');
+    if (!apiKey) {
+      this.logger.warn(`OpenAI skipped employeeId=${employee.id} reason=missing_api_key`);
+      return ranked;
+    }
+    const model = this.config?.get<string>('ai.openai.model') || 'gpt-4o-mini';
+    const clientRequestId = randomUUID();
+    this.logger.log(`OpenAI request started employeeId=${employee.id} model=${model} candidates=${ranked.length} clientRequestId=${clientRequestId}`);
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         signal: AbortSignal.timeout(7000),
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.config.get<string>('ai.openai.apiKey')}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`, 'X-Client-Request-Id': clientRequestId },
         body: JSON.stringify({
-          model: this.config.get<string>('ai.openai.model') || 'gpt-4o-mini',
-          max_completion_tokens: this.config.get<number>('ai.openai.maxTokens') || 4096,
+          model,
+          max_completion_tokens: this.config?.get<number>('ai.openai.maxTokens') || 4096,
           messages: [
             { role: 'system', content: 'Select career development activities from the grounded candidates. Consider grade gap, gain, participation history, and audience. Return only a JSON array of up to 3 event IDs. Never invent IDs.' },
             { role: 'user', content: JSON.stringify({ employee: { role: employee.role, currentGrade: employee.currentGrade, targetGrade: employee.targetGrade }, candidates: ranked.slice(0, 10).map(({ eventId, score, reason }) => ({ eventId, score, reason })) }) },
           ],
         }),
       });
-      if (!response.ok) throw new Error(`OpenAI HTTP ${response.status}`);
-      const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+      const requestId = response.headers?.get('x-request-id') || 'unavailable';
+      if (!response.ok) throw new Error(`http_status=${response.status} requestId=${requestId}`);
+      const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
+      this.logger.log(`OpenAI response received clientRequestId=${clientRequestId} requestId=${requestId} status=${response.status} promptTokens=${payload.usage?.prompt_tokens ?? 'unavailable'} completionTokens=${payload.usage?.completion_tokens ?? 'unavailable'} totalTokens=${payload.usage?.total_tokens ?? 'unavailable'}`);
       const content = payload.choices?.[0]?.message?.content;
-      if (!content) return ranked;
-      const ids = JSON.parse(content) as unknown;
-      if (!Array.isArray(ids) || !ids.length || ids.length > 3 || ids.some((id) => typeof id !== 'string' || !ranked.some((item) => item.eventId === id))) return ranked;
+      if (!content) {
+        this.logger.warn(`OpenAI fallback clientRequestId=${clientRequestId} reason=empty_content`);
+        return ranked;
+      }
+      let ids: unknown;
+      try { ids = JSON.parse(content); }
+      catch {
+        this.logger.warn(`OpenAI fallback clientRequestId=${clientRequestId} reason=invalid_json`);
+        return ranked;
+      }
+      if (!Array.isArray(ids) || !ids.length || ids.length > 3 || ids.some((id) => typeof id !== 'string' || !ranked.some((item) => item.eventId === id))) {
+        this.logger.warn(`OpenAI fallback clientRequestId=${clientRequestId} reason=invalid_event_ids`);
+        return ranked;
+      }
       const unique = [...new Set(ids)];
+      this.logger.log(`OpenAI recommendation applied clientRequestId=${clientRequestId} selected=${unique.length}`);
       return [...unique.map((id) => ranked.find((item) => item.eventId === id)), ...ranked.filter((item) => !unique.includes(item.eventId))];
     } catch (error) {
-      this.logger.warn(`LLM unavailable, using grounded ranking: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.warn(`OpenAI fallback clientRequestId=${clientRequestId} reason=${error instanceof Error ? error.message : String(error)}`);
       return ranked;
     }
   }

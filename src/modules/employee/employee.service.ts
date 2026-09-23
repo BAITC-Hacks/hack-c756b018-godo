@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Employee } from '../../entities/employee.entity';
@@ -11,6 +11,7 @@ import { AIRecommendation, CompleteActivityResponse } from '../../../types';
 
 @Injectable()
 export class EmployeeService {
+  private readonly logger = new Logger(EmployeeService.name);
   constructor(
     @InjectRepository(Employee) private employeeRepo: Repository<Employee>,
     @InjectRepository(EmployeeSkill) private empSkillRepo: Repository<EmployeeSkill>,
@@ -67,7 +68,10 @@ export class EmployeeService {
     const availableEvents = (await this.eventRepo.find()).filter((event) =>
       !completedEventIds.has(event.id) && event.skillsDeveloped?.some((skill) => skillGaps.has(skill.skillId)),
     );
-    if (availableEvents.length === 0) return [];
+    if (availableEvents.length === 0) {
+      this.logger.log(`Career AI skipped employeeId=${employeeId} reason=${skillGaps.size ? 'no_relevant_events' : 'no_skill_gaps'} skillGaps=${skillGaps.size}`);
+      return [];
+    }
 
     const targetRequirements = employee.skills.map((es) => ({
       skillId: es.skillId,
