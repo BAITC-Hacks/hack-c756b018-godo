@@ -108,14 +108,20 @@
   "hotPaths": [
     {
       "path": "src\\main.ts",
-      "accessCount": 3,
-      "lastAccessed": 1790155305440,
+      "accessCount": 4,
+      "lastAccessed": 1790162387193,
       "type": "file"
     },
     {
       "path": "src\\modules\\ai\\ai.service.ts",
-      "accessCount": 3,
-      "lastAccessed": 1790155306784,
+      "accessCount": 4,
+      "lastAccessed": 1790162407479,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 4,
+      "lastAccessed": 1790163967008,
       "type": "file"
     },
     {
@@ -125,9 +131,15 @@
       "type": "file"
     },
     {
+      "path": "docker-compose.yml",
+      "accessCount": 3,
+      "lastAccessed": 1790162387217,
+      "type": "file"
+    },
+    {
       "path": "src\\config\\ai.config.ts",
-      "accessCount": 2,
-      "lastAccessed": 1790155013376,
+      "accessCount": 3,
+      "lastAccessed": 1790162395847,
       "type": "file"
     },
     {
@@ -149,9 +161,15 @@
       "type": "file"
     },
     {
-      "path": "docker-compose.yml",
+      "path": "src\\modules\\employee\\employee.controller.ts",
       "accessCount": 2,
-      "lastAccessed": 1790155574323,
+      "lastAccessed": 1790162395879,
+      "type": "file"
+    },
+    {
+      "path": "src\\modules\\hr\\hr.controller.ts",
+      "accessCount": 2,
+      "lastAccessed": 1790162396898,
       "type": "file"
     },
     {
@@ -239,12 +257,6 @@
       "type": "file"
     },
     {
-      "path": "src\\modules\\employee\\employee.controller.ts",
-      "accessCount": 1,
-      "lastAccessed": 1790155098127,
-      "type": "file"
-    },
-    {
       "path": "src\\modules\\employee\\employee.module.ts",
       "accessCount": 1,
       "lastAccessed": 1790155100900,
@@ -260,12 +272,6 @@
       "path": "src\\modules\\hr\\hr.service.ts",
       "accessCount": 1,
       "lastAccessed": 1790155119972,
-      "type": "file"
-    },
-    {
-      "path": "src\\modules\\hr\\hr.controller.ts",
-      "accessCount": 1,
-      "lastAccessed": 1790155122333,
       "type": "file"
     },
     {
@@ -290,6 +296,18 @@
       "path": "Dockerfile",
       "accessCount": 1,
       "lastAccessed": 1790155189177,
+      "type": "file"
+    },
+    {
+      "path": "src\\modules\\employee\\activities.controller.ts",
+      "accessCount": 1,
+      "lastAccessed": 1790162396827,
+      "type": "file"
+    },
+    {
+      "path": "src\\modules\\import\\dataset.controller.ts",
+      "accessCount": 1,
+      "lastAccessed": 1790162396866,
       "type": "file"
     }
   ],

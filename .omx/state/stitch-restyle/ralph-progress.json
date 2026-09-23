@@ -1,0 +1,17 @@
+{
+  "score": 92,
+  "verdict": "pass",
+  "category_match": true,
+  "differences": [
+    "Existing product sections and demo role controls are retained instead of adding reference-only controls and metrics, per user instruction.",
+    "Inter uses a local font fallback when unavailable; no external font dependency was added."
+  ],
+  "suggestions": [],
+  "reasoning": "Compared the rendered supplied HTML against desktop HR and mobile employee screenshots. White 256px navigation, pale blue-gray surfaces, green accents, compact typography, card radii and table styling follow the reference within the existing-feature constraint.",
+  "threshold": 90,
+  "passed": true,
+  "next_actions": [],
+  "reference_images": [".omx/ui-check/stitch-html-reference.png"],
+  "generated_screenshots": [".omx/ui-check/role-desktop.png", ".omx/ui-check/role-mobile.png"],
+  "validation": "Frontend lint, typecheck and production build pass. Browser role-switch test passes with mock API responses, including mobile overflow and role persistence."
+}
