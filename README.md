@@ -66,13 +66,6 @@ curl http://localhost:3000/employees/E0028/recommendations -H "X-Employee-Id: E0
 curl http://localhost:3000/hr/analytics -H "X-Role: hr"
 ```
 
-## Запуск
-
-```sh
-cd backend
-docker compose up --build
-```
-
 Frontend — http://localhost:3001, backend — http://localhost:3000, Swagger — http://localhost:3000/docs.
 
 Локально без Docker: поднять Postgres (`docker compose up db`), затем `npm install && npm run start:dev` в `backend/` и `npm install && npm run dev` в `frontend/`.
