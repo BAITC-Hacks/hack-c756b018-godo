@@ -2,205 +2,92 @@
 
 # Career Quest
 
-**AI-навигатор карьерного развития сотрудников** (Halyk Bank Track).
+AI-навигатор карьерного развития сотрудников (кейс Halyk Bank). Сотрудник видит, чего не хватает до следующего грейда, и получает 1–3 активности с объяснением «почему именно это». HR видит, где команда проседает, и кому стоит обсудить развитие.
 
-## Что решает продукт
+## Зачем и как это работает
 
-Career Quest помогает сотрудникам и HR-службе управлять карьерным ростом:
+Проблема: каталог обучения большой, сотрудник не понимает, что двигает его к следующему грейду, а часть мероприятий системно пропускает. Career Quest берёт три набора данных — профиль навыков, требования грейдов и историю участия — и превращает их в короткий персональный план.
 
-- **Для сотрудника** — показывает текущий профиль навыков, разрыв с требованиями
-  следующего грейда и персональные AI-рекомендации мероприятий с понятным
-  обоснованием (Explainability): почему именно это событие и какой навык оно
-  закроет. Пройденные активности отмечаются одной кнопкой, прогресс
-  пересчитывается автоматически.
-- **Для HR** — дашборд со списком сотрудников и аналитикой: проседающие навыки
-  по команде и зона риска (кто системно отстаёт от требований целевого грейда).
-- **AI-движок** анализирует профиль, требования грейда, историю активностей за
-  24 месяца и доступные мероприятия, затем возвращает 1–3 рекомендации с
-  приоритетом, прогнозируемым приростом навыка и объяснением минимум по трём
-  факторам. Работает на Anthropic Claude, при недоступности API автоматически
-  переключается на детерминированный fallback (mock), поэтому демо не падает.
+Конвейер рекомендации (`backend/src/modules/recommendations/recommendations.service.ts`):
 
-## Стек
+1. **Карта цели.** Из `skills.json` берётся матрица `requirementsByGrade` для роли и целевого грейда сотрудника — что и на каком уровне нужно.
+2. **Жёсткие префильтры.** Навык с 2+ пропусками или отказами (MISSED/REFUSED) исключается целиком — повторное предложение того, что сотрудник уже отверг, бесполезно. Далее отбрасываются пройденные события, события по навыку на `maxLevel` и не подходящие по аудитории.
+3. **Разрыв (skill gap).** Для каждого оставшегося события: `требуемый уровень − текущий` и прогноз прироста `min(gain, maxLevel − current)`.
+4. **TOP-5 → LLM.** В OpenAI (`gpt-4o-mini`, JSON-режим) уходит только компактный контекст: один сотрудник и 5 кандидатов. Модель выбирает ID строго из этого списка и пишет короткое объяснение.
+5. **Guardrails.** Ответ модели проверяется: несуществующий `eventId`, сломанная структура или таймаут 8 с — ответ собирается локальным алгоритмическим рейтингом. Без `OPENAI_API_KEY` API работает так же, только сразу по локальному порядку. Демо не падает никогда.
+6. **Объяснение на фактах.** В каждом ответе есть проверяемые числа — грейды, текущий и требуемый уровень, разрыв, прогноз прироста, история по навыку. Текст модели добавляется к фактам, а не заменяет их.
 
-**Backend** (`backend/src`, NestJS):
-- NestJS 11 + TypeScript, TypeORM 0.3, PostgreSQL 15 (SQLite — альтернатива)
-- Swagger (`@nestjs/swagger`) — интерактивная документация API
-- `class-validator` / `class-transformer` — валидация DTO
-- `@anthropic-ai/sdk` — AI-рекомендации (модель по умолчанию `claude-3-5-sonnet`)
-- Jest + Supertest — юнит- и интеграционные тесты
+Отметка «пройдено» атомарно повышает навык до `min(current + gain, maxLevel)`, пишет `COMPLETED` в историю и пересчитывает готовность к целевому грейду.
 
-**Frontend** (`/frontend`, Next.js):
-- Next.js 16 + React 19 + TypeScript
-- Tailwind CSS 4, Framer Motion, lucide-react, Zustand
+## Что использовано и где
 
-**Инфраструктура**: Docker / docker-compose (db + backend + frontend).
+| Технология | Где | Зачем |
+| --- | --- | --- |
+| NestJS 11 + TypeScript | `backend/src` | REST API: модули `employee`, `hr`, `recommendations`, `data-importer`; Swagger на `/docs` |
+| TypeORM 0.3 + PostgreSQL 15 | `backend/src/storage` | 4 таблицы; навыки сотрудника и требования грейдов — JSONB; схема синхронизируется автоматически (`synchronize: true`) |
+| class-validator / class-transformer | DTO модулей | Валидация входных данных, `whitelist` против лишних полей |
+| OpenAI Chat Completions (`gpt-4o-mini`) | `recommendations.service.ts` | Выбор 1–3 мероприятий из отфильтрованного списка и объяснение; JSON-режим, таймаут, алгоритмический fallback |
+| Next.js 16 + React 19 | `frontend/app` | Страницы `/` (выбор роли), `/employee`, `/hr`, `/hr/employees/[id]`; запросы к backend по `/api/*` (`BACKEND_URL`) |
+| Tailwind CSS 4 + lucide-react | `frontend` | Стиль интерфейса и иконки |
+| Framer Motion, Zustand | `frontend` | Анимация прогресс-баров, клиентское состояние профиля |
+| Docker Compose | `backend/docker-compose.yml` | Три сервиса: `db`, `backend`, `frontend`; `backend/data` монтируется в контейнер для импорта данных жюри |
+| Jest | `backend/src/**/*.spec.ts` | Юнит-тесты префильтра рекомендаций, импортёра датасета и ролевого guard |
+
+## Демо-доступ
+
+Для хакатона — заголовки вместо SSO (осознанное ограничение демо): `X-Role: employee | hr` и `X-Employee-Id` для сотрудника. `RolesGuard` подключён глобально (`APP_GUARD`) и возвращает `403`, если сотрудник лезет в HR-разделы или в чужой профиль. Переключатель роли встроен в интерфейс.
+
+Демоданные из `backend/data/` (`employees.json`, `events.json`, `skills.json`, `activity_history.csv`) импортируются автоматически при первом старте в пустую БД. Полная замена — `POST /api/admin/import`; дозагрузка отдельных записей — `POST /api/hr/import` или HR-экран (JSON и CSV разбираются на клиенте). `skipped` в CSV становится `MISSED`; история с неизвестным сотрудником или событием откатывает транзакцию импорта.
+
+## API
+
+Интерактивная документация: `http://localhost:3000/docs`. Основные маршруты (префикс `/api` опционален):
+
+| Метод | Путь | Роль | Описание |
+| --- | --- | --- | --- |
+| GET | `/employees/:id` | emp / hr | Профиль: навыки с уровнями, требованиями и готовностью |
+| GET | `/employees/:id/recommendations` | emp / hr | 1–3 рекомендации с обоснованием и breakdown по фактам |
+| POST | `/employees/:id/complete-event/:eventId` | emp | Отметить пройденным, вернуть обновлённый профиль |
+| POST | `/activities/complete` | emp | То же по `employeeId` + `eventId` в теле |
+| GET | `/hr/employees` | hr | Список сотрудников с готовностью и статусом |
+| GET | `/hr/analytics` | hr | Топ-5 проседающих навыков, сотрудники без шага, участие по событиям |
+| GET | `/hr/employees/:id` | hr | Профиль сотрудника, только просмотр |
+| POST | `/hr/import` | hr | Дозагрузка JSON-датасета (merge) |
+| POST | `/api/admin/import` | hr | Полная замена данных из файлов `backend/data` |
+
+Примеры:
+
+```sh
+# Профиль и рекомендации сотрудника
+curl http://localhost:3000/employees/E0028 -H "X-Role: employee" -H "X-Employee-Id: E0028"
+curl http://localhost:3000/employees/E0028/recommendations -H "X-Employee-Id: E0028"
+
+# HR-аналитика
+curl http://localhost:3000/hr/analytics -H "X-Role: hr"
+```
 
 ## Запуск
-
-### Вариант 1 — Docker (всё сразу)
 
 ```sh
 cd backend
 docker compose up --build
 ```
 
-Compose-файл лежит в `backend/` и поднимает три сервиса (frontend собирается из `../frontend`). В `backend/data` и `backend/demo` лежат готовые синтетические датасеты — их можно загрузить через HR-экран или API после старта.
+Frontend — http://localhost:3001, backend — http://localhost:3000, Swagger — http://localhost:3000/docs.
 
-Поднимаются три сервиса:
+Локально без Docker: поднять Postgres (`docker compose up db`), затем `npm install && npm run start:dev` в `backend/` и `npm install && npm run dev` в `frontend/`.
 
-| Сервис   | URL                            |
-| -------- | ------------------------------ |
-| Frontend | http://localhost:3001          |
-| Backend  | http://localhost:3000          |
-| Swagger  | http://localhost:3000/docs     |
-| Postgres | localhost:5432 (career_quest)  |
+Переменные backend: `DB_URL` (или `DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME`), `AI_PROVIDER=openai`, `OPENAI_API_KEY`, опционально `OPENAI_MODEL` (по умолчанию `gpt-4o-mini`) и `OPENAI_MAX_TOKENS`.
 
-Для реального AI задайте в `docker-compose.yml`:
-
-```yaml
-AI_PROVIDER: anthropic
-ANTHROPIC_API_KEY: <ваш ключ>
-```
-
-По умолчанию `AI_PROVIDER: mock` — рекомендации генерируются без внешнего API.
-
-### Вариант 2 — локально
-
-1. База данных — поднять только Postgres (из каталога `backend/`):
-
-   ```sh
-   cd backend
-   docker compose up db
-   ```
-
-   Либо указать свой Postgres/Supabase через `DB_URL`
-   (для Supabase SSL включается автоматически).
-
-2. Backend (из каталога `backend/`):
-
-   ```sh
-   npm install
-   npm run start:dev
-   ```
-
-   Переменные окружения (все опциональны, есть значения по умолчанию):
-   `PORT` (3000), `DB_URL` либо `DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME`,
-   `DB_SSL`, `AI_PROVIDER` (`mock` | `anthropic`), `ANTHROPIC_API_KEY`,
-   `ANTHROPIC_MODEL`, `ANTHROPIC_MAX_TOKENS`.
-   Схема БД синхронизируется автоматически (`synchronize: true`).
-
-3. Frontend:
-
-   ```sh
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-   Открывается на http://localhost:3001 и ходит в backend по `/api/*`
-   (адрес настраивается переменной `BACKEND_URL`).
-
-## Аутентификация
-
-В интерфейсе сверху расположен переключатель **«Сотрудник / HR»**.
-Выбор сохраняется в браузере и задаёт `X-Role` для всех API-запросов.
-В режиме сотрудника доступен личный профиль; переключение на HR открывает
-обзор команды и загрузку данных. HR может просматривать рекомендации,
-но отметка о прохождении доступна только в режиме сотрудника.
-
-Для хакатона используется упрощённая ролевая модель через HTTP-заголовки,
-без регистрации и паролей (осознанное ограничение демо, не для продакшена):
-
-- `X-Role: employee` (по умолчанию) или `X-Role: hr`; любая другая роль — `403`.
-- `X-Employee-Id: E0028` — обязателен для сотрудника. Сотрудник видит только
-  свой профиль, рекомендации и свои активности; несовпадение ID — `403`.
-- HR читает любые профили и аналитику без `X-Employee-Id`.
-- Маршруты `/hr/*`, `POST /hr/import` и `POST /api/admin/import` — только для HR.
-- `RolesGuard` подключён глобально через `APP_GUARD`; в продакшене перед ним
-  добавляется JWT, правила `@Roles()` и проверки владельца не меняются.
-
-## API
-
-Интерактивная документация: **http://localhost:3000/docs**
-
-Основные эндпоинты (каждый доступен с префиксом `/api/...` и без него):
-
-| Метод | Путь                             | Роль     | Описание                                        |
-| ----- | -------------------------------- | -------- | ----------------------------------------------- |
-| GET   | `/employees/:id`                 | emp / hr | Профиль сотрудника и его навыки                 |
-| GET   | `/employees/:id/recommendations` | emp / hr | AI-рекомендации с объяснением                   |
-| POST  | `/employees/activities/complete` | employee | Отметить активность, пересчитать прогресс       |
-| POST  | `/activities/complete`           | employee | То же, по `employeeId` + `eventId` в теле       |
-| GET   | `/hr/employees`                  | hr       | Список сотрудников для HR-дашборда              |
-| GET   | `/hr/analytics`                  | hr       | Проседающие навыки и зона риска                 |
-| POST  | `/hr/import`                     | hr       | Импорт JSON-датасета (employees, events, skills, history) |
-| POST  | `/api/admin/import`              | hr       | Полная замена данных из JSON-датасета           |
-
-### Примеры запросов
-
-Backend работает на `http://localhost:3000`.
-В Windows PowerShell используйте `curl.exe` вместо `curl`.
+## Проверка
 
 ```sh
-# Сотрудник читает свой профиль
-curl -i http://localhost:3000/employees/E0028 -H "X-Role: employee" -H "X-Employee-Id: E0028"
-
-# Рекомендации (роль employee — по умолчанию)
-curl -i http://localhost:3000/employees/E0028/recommendations -H "X-Employee-Id: E0028"
-
-# HR: профиль, рекомендации, аналитика
-curl -i http://localhost:3000/employees/E0028 -H "X-Role: hr"
-curl -i http://localhost:3000/hr/analytics -H "X-Role: hr"
-
-# Загрузка датасета жюри (JSON с массивами employees, events, skills, history)
-curl -i http://localhost:3000/api/admin/import -H "X-Role: hr" \
-  -H "Content-Type: application/json" --data-binary @dataset.json
+cd backend  && npm run build && npm test -- --runInBand
+cd frontend && npm run typecheck
 ```
 
-Попытка сотрудника открыть HR-аналитику или чужой профиль возвращает `403`:
+Ручной сценарий: откройте сотрудника `E0028` — Public Speaking (3 пропуска в истории) не должен попасть в рекомендации, а System Design с разрывом 2 до Senior — должен. Отметьте активность пройденной: уровень навыка вырастет, готовность пересчитается. Запрос `/hr/analytics` с ролью `employee` возвращает `403`.
 
-```json
-{
-  "message": "Доступ разрешён только для указанных ролей",
-  "error": "Forbidden",
-  "statusCode": 403
-}
-```
+## Ограничения демо
 
-## Проверка решения
-
-1. **Сборка и тесты** (из каталога `backend/`)
-
-   ```sh
-   npm run build          # сборка backend
-   npm test -- --runInBand
-   ```
-
-   Тест `src/common/roles.guard.spec.ts` прогоняет реальные контроллеры через
-   HTTP с подменёнными сервисами (без БД) и проверяет все правила ролей:
-   доступ HR/employee, запрет чужого профиля, запрет HR на завершение активностей.
-
-   Для frontend:
-
-   ```sh
-   cd frontend
-   npm run typecheck
-   npm run lint
-   ```
-
-2. **Сценарий ручной проверки**
-
-   1. `cd backend && docker compose up --build`, дождаться старта всех сервисов.
-   2. Загрузить датасет: `POST /api/admin/import` с `X-Role: hr`
-      (см. пример выше) или через HR-экран, файлы — из `backend/data`.
-   3. Открыть http://localhost:3001, войти как сотрудник `E0028` —
-       проверить профиль, разрыв навыков и AI-рекомендации с объяснением.
-   4. Отметить рекомендацию пройденной — прогресс навыка должен вырасти.
-   5. Открыть HR-режим — проверить список сотрудников и аналитику
-      (проседающие навыки, зона риска).
-   6. Проверить разграничение доступа: запрос
-      `/hr/analytics` с `X-Role: employee` должен вернуть `403`,
-      как и чтение чужого профиля сотрудником.
-   7. Swagger: открыть http://localhost:3000/docs и убедиться,
-      что все эндпоинты задокументированы.
+Роль передаётся заголовком и подделывается вручную — для банка нужен SSO/JWT и серверная проверка личности; схема БД синхронизируется автоматически вместо миграций. Эти места помечены в коде и меняются без перестройки остальной логики.

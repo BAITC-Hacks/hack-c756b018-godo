@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, BriefcaseBusiness, ChartNoAxesCombined, Compass, Sparkles } from 'lucide-react';
+import { setDemoRole } from '@/lib/demo-role';
 
 export default function Home() {
   const router = useRouter();
@@ -12,6 +12,7 @@ export default function Home() {
   function openEmployee() {
     const id = employeeId.trim();
     if (!id) return;
+    setDemoRole('employee');
     window.localStorage.setItem('careerQuestEmployeeId', id);
     router.push(`/employee?id=${encodeURIComponent(id)}`);
   }
@@ -46,7 +47,7 @@ export default function Home() {
           <li className="flex items-center gap-2"><Sparkles size={15} className="text-[#008a4d]"/> Импорт проверочных профилей и истории</li>
           <li className="flex items-center gap-2"><Sparkles size={15} className="text-[#008a4d]"/> Профиль сотрудника только для просмотра</li>
         </ul>
-        <Link href="/hr" className="btn-secondary mt-auto w-full">Открыть HR-обзор <ArrowRight size={17}/></Link>
+        <button className="btn-secondary mt-auto w-full" onClick={() => { setDemoRole('hr'); router.push('/hr'); }}>Открыть HR-обзор <ArrowRight size={17}/></button>
       </section>
     </div>
     <p className="muted mt-7 text-xs">Выбор роли здесь демонстрационный: сервер проверяет заголовки роли и ID. Для реального банка требуется SSO.</p>

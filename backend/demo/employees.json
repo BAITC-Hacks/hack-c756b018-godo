@@ -1,4 +1,0 @@
-[
-  {"employee_id":"E0028","name":"Айдана Садыкова","role":"Backend Engineer","grade":"Middle","tenure_months":52,"skills":{"SK_SYSTEM_DESIGN":2,"SK_PYTHON":3,"SK_PUBLIC_SPEAKING":1}},
-  {"employee_id":"E0031","name":"Данияр Омаров","role":"Backend Engineer","grade":"Junior","tenure_months":18,"skills":{"SK_SYSTEM_DESIGN":1,"SK_PYTHON":2,"SK_PUBLIC_SPEAKING":2}}
-]

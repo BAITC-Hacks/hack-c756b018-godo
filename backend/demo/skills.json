@@ -1,5 +1,0 @@
-[
-  {"id":"SK_SYSTEM_DESIGN","name":"System Design","category":"hard","requirements":{"Middle":2,"Senior":4}},
-  {"id":"SK_PYTHON","name":"Python","category":"hard","requirements":{"Middle":3,"Senior":4}},
-  {"id":"SK_PUBLIC_SPEAKING","name":"Public Speaking","category":"soft","requirements":{"Middle":2,"Senior":2}}
-]
