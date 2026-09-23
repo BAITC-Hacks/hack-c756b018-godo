@@ -1,3 +1,5 @@
+<img width="1376" height="768" alt="image" src="https://github.com/user-attachments/assets/1c25db11-d6cf-4112-905c-19d642c10907" />
+
 # Career Quest
 
 **AI-навигатор карьерного развития сотрудников** (Halyk Bank Track).
