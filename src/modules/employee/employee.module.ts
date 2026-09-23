@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmployeeController } from './employee.controller';
+import { ActivitiesController } from './activities.controller';
 import { EmployeeService } from './employee.service';
 import { Employee } from '../../entities/employee.entity';
 import { EmployeeSkill } from '../../entities/employee-skill.entity';
@@ -10,7 +11,7 @@ import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Employee, EmployeeSkill, Event, ActivityHistory]), AiModule],
-  controllers: [EmployeeController],
+  controllers: [EmployeeController, ActivitiesController],
   providers: [EmployeeService],
 })
 export class EmployeeModule {}

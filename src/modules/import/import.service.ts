@@ -32,11 +32,15 @@ export class ImportService {
       // 2. Сохраняем события
       for (const ev of dto.events) {
         await queryRunner.manager.save(Event, {
-          id: ev.id,
+          id: ev.id || ev.event_id,
           title: ev.title,
-          type: ev.type,
+          type: ev.type || 'training',
           targetAudience: ev.target_audience || ['Middle'],
-          skillsDeveloped: ev.skills_developed || [],
+          skillsDeveloped: (ev.skills_developed || ev.skillsDeveloped || []).map((skill: any) => ({
+            skillId: skill.skillId || skill.skill_id,
+            gain: Number(skill.gain) || 1,
+            maxLevel: Number(skill.maxLevel || skill.max_level) || 5,
+          })),
         });
       }
 
@@ -49,8 +53,13 @@ export class ImportService {
           currentGrade: emp.grade || 'Middle',
           targetGrade: 'Senior',
           tenureMonths: emp.tenure_months || 12,
-          readinessScore: 50,
+          readinessScore: emp.skills && Object.keys(emp.skills).length > 0
+            ? Math.round(Object.values(emp.skills).reduce<number>((sum, level) => sum + Math.min(Number(level), 4), 0) / (Object.keys(emp.skills).length * 4) * 100)
+            : 0,
         });
+
+        await queryRunner.manager.delete(EmployeeSkill, { employeeId: newEmp.id });
+        await queryRunner.manager.delete(ActivityHistory, { employeeId: newEmp.id });
 
         if (emp.skills) {
           for (const [skillId, level] of Object.entries(emp.skills)) {

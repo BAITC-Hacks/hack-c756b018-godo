@@ -24,6 +24,12 @@ export class HrController {
     return this.hrService.getAnalytics();
   }
 
+  @Get('employees')
+  @ApiOperation({ summary: 'Список сотрудников для HR-дашборда' })
+  getEmployees() {
+    return this.hrService.getEmployees();
+  }
+
   @Post('import')
   @ApiOperation({ summary: 'Импорт датасета для тестирования жюри' })
   importDataset(@Body() dto: ImportDatasetDto) {

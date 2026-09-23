@@ -5,3 +5,5 @@ db.sqlite-journal
 uploads/
 .env
 *.log
+.next/
+*.tsbuildinfo

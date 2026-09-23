@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Employee } from '../../entities/employee.entity';
@@ -7,6 +7,7 @@ import { Event } from '../../entities/event.entity';
 import { ActivityHistory } from '../../entities/activity-history.entity';
 import { ActivityStatus } from '../../common/enums/activity-status.enum';
 import { AiService } from '../ai/ai.service';
+import { AIRecommendation, CompleteActivityResponse } from '../../../types';
 
 @Injectable()
 export class EmployeeService {
@@ -60,7 +61,12 @@ export class EmployeeService {
     });
     if (!employee) throw new NotFoundException('Сотрудник не найден');
 
-    const availableEvents = await this.eventRepo.find();
+    const completedEventIds = new Set(employee.history.filter((entry) => entry.status === ActivityStatus.COMPLETED).map((entry) => entry.eventId));
+    const skillGaps = new Set(employee.skills.filter((skill) => skill.currentLevel < skill.requiredLevel).map((skill) => skill.skillId));
+    const availableEvents = (await this.eventRepo.find()).filter((event) =>
+      !completedEventIds.has(event.id) && event.skillsDeveloped?.some((skill) => skillGaps.has(skill.skillId)),
+    );
+    if (availableEvents.length === 0) return [];
 
     const targetRequirements = employee.skills.map((es) => ({
       skillId: es.skillId,
@@ -73,7 +79,7 @@ export class EmployeeService {
       date: h.date,
     }));
 
-    return this.aiService.generateExplainableRecommendations(
+    const recommendations = await this.aiService.generateExplainableRecommendations(
       {
         id: employee.id,
         role: employee.role,
@@ -86,22 +92,31 @@ export class EmployeeService {
       historyData,
       availableEvents,
     );
+    const availableIds = new Set(availableEvents.map((event) => event.id));
+    return recommendations.filter((recommendation) => availableIds.has(recommendation.eventId)).slice(0, 3).map((recommendation): AIRecommendation => ({
+      ...recommendation,
+      title: availableEvents.find((event) => event.id === recommendation.eventId)?.title || recommendation.eventId,
+      targetSkillName: employee.skills.find((skill) => skill.skillId === recommendation.targetSkillId)?.skill?.name || recommendation.targetSkillId,
+    }));
   }
 
-  async completeActivity(employeeId: string, eventId: string) {
+  async completeActivity(employeeId: string, eventId: string): Promise<CompleteActivityResponse> {
     const employee = await this.employeeRepo.findOne({
       where: { id: employeeId },
-      relations: ['skills'],
+      relations: ['skills', 'skills.skill'],
     });
     const event = await this.eventRepo.findOne({ where: { id: eventId } });
 
     if (!employee || !event) throw new NotFoundException('Сотрудник или Активность не найдены');
 
     // Обновляем навыки
+    const alreadyCompleted = await this.historyRepo.exists({ where: { employeeId, eventId, status: ActivityStatus.COMPLETED } });
+    if (alreadyCompleted) throw new ConflictException('Активность уже выполнена');
+
     for (const dev of event.skillsDeveloped) {
       const empSkill = employee.skills.find((s) => s.skillId === dev.skillId);
       if (empSkill) {
-        empSkill.currentLevel = Math.min(empSkill.currentLevel + dev.gain, dev.maxLevel);
+        empSkill.currentLevel = Math.min(empSkill.currentLevel + dev.gain, dev.maxLevel ?? 5);
         await this.empSkillRepo.save(empSkill);
       }
     }
@@ -117,7 +132,7 @@ export class EmployeeService {
     // Пересчитываем готовность
     const updatedEmployee = await this.employeeRepo.findOne({
       where: { id: employeeId },
-      relations: ['skills'],
+      relations: ['skills', 'skills.skill'],
     });
     if (!updatedEmployee) throw new NotFoundException('Сотрудник не найден');
 
@@ -137,6 +152,8 @@ export class EmployeeService {
       newReadinessScore: newScore,
       updatedSkills: updatedEmployee.skills.map((s) => ({
         skillId: s.skillId,
+        skillName: s.skill?.name || s.skillId,
+        category: (s.skill?.category === 'soft' ? 'soft' : 'hard') as 'soft' | 'hard',
         currentLevel: s.currentLevel,
         requiredLevel: s.requiredLevel,
       })),
