@@ -1,0 +1,11 @@
+{
+  "score": 92,
+  "verdict": "pass",
+  "category_match": true,
+  "differences": [],
+  "suggestions": [],
+  "reasoning": "Subjective screenshot usability review against task intent, not reference fidelity: no reference image was supplied. Mobile recommendations precede skills, search text clears its icon, and navigation remains readable. HR table scrolls within its container. Browser checks used API fixtures, not the live database.",
+  "next_actions": [],
+  "threshold": 90,
+  "passed": true
+}

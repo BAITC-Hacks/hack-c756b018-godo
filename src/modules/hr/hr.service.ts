@@ -45,7 +45,7 @@ export class HrService {
       .where('es.currentLevel < es.requiredLevel')
       .groupBy('es.skillId')
       .addGroupBy('skill.name')
-      .orderBy('affectedEmployees', 'DESC')
+      .orderBy('"affectedEmployees"', 'DESC')
       .getRawMany();
 
     // Сотрудники с низким рейтингом готовности
