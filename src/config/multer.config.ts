@@ -1,3 +1,4 @@
+import { mkdirSync } from 'node:fs';
 import { extname } from 'node:path';
 import { BadRequestException } from '@nestjs/common';
 import { diskStorage } from 'multer';
@@ -19,6 +20,7 @@ const ALLOWED_MIME_TYPES = new Set([
 export const multerOptions: MulterOptions = {
   storage: diskStorage({
     destination: (_req, _file, cb) => {
+      mkdirSync(appConfig.uploadDir, { recursive: true });
       cb(null, appConfig.uploadDir);
     },
     filename: (_req, file, cb) => {
