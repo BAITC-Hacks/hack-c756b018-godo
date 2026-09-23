@@ -1,17 +1,15 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { HrService } from './hr.service';
 import { ImportDatasetDto } from './dto/import-dataset.dto';
 import { ImportService } from '../import/import.service';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { Roles } from '../../common/roles.decorator';
 import { UserRole } from '../../common/enums/role.enum';
 
 @ApiTags('HR Management')
-@ApiHeader({ name: 'x-user-role', description: 'Роль (должна быть HR)', example: 'HR' })
-@UseGuards(RolesGuard)
+@ApiHeader({ name: 'X-Role', description: 'Доступ только для HR', example: 'hr', required: true })
 @Roles(UserRole.HR)
-@Controller('api/hr')
+@Controller(['api/hr', 'hr'])
 export class HrController {
   constructor(
     private readonly hrService: HrService,

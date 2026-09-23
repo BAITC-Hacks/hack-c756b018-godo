@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from './common/roles.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { aiConfig } from './config/ai.config';
@@ -13,6 +15,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { ImportModule } from './modules/import/import.module';
 
 @Module({
+  providers: [{ provide: APP_GUARD, useClass: RolesGuard }],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
