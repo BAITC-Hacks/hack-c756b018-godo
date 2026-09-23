@@ -9,8 +9,11 @@ import { Event } from './entities/event.entity';
 import { ActivityHistory } from './entities/activity-history.entity';
 import { EmployeeModule } from './modules/employee/employee.module';
 import { HrModule } from './modules/hr/hr.module';
-import { AiModule } from './modules/ai/ai.module';
-import { ImportModule } from './modules/import/import.module';
+import { EmployeeEntity } from './storage/entities/employee.entity';
+import { EventEntity } from './storage/entities/event.entity';
+import { SkillRequirementEntity } from './storage/entities/skill-requirement.entity';
+import { ActivityHistoryEntity } from './storage/entities/activity-history.entity';
+import { DataImporterModule } from './modules/data-importer/data-importer.module';
 
 @Module({
   imports: [
@@ -37,15 +40,14 @@ import { ImportModule } from './modules/import/import.module';
                 database: process.env.DB_NAME || 'career_quest',
               }),
           ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
-          entities: [Employee, Skill, EmployeeSkill, Event, ActivityHistory],
+          entities: [Employee, Skill, EmployeeSkill, Event, ActivityHistory, EmployeeEntity, EventEntity, SkillRequirementEntity, ActivityHistoryEntity],
           synchronize: true, // Включаем авто-миграции для быстрого старта на хакатоне
         };
       },
     }),
     EmployeeModule,
     HrModule,
-    AiModule,
-    ImportModule,
+    DataImporterModule,
   ],
 })
 export class AppModule {}

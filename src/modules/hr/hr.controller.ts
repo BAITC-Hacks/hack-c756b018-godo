@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { HrService } from './hr.service';
 import { ImportDatasetDto } from './dto/import-dataset.dto';
-import { ImportService } from '../import/import.service';
+import { DataImporterService } from '../data-importer/data-importer.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/role.enum';
@@ -15,7 +15,7 @@ import { UserRole } from '../../common/enums/role.enum';
 export class HrController {
   constructor(
     private readonly hrService: HrService,
-    private readonly importService: ImportService,
+    private readonly importService: DataImporterService,
   ) {}
 
   @Get('analytics')
@@ -33,6 +33,6 @@ export class HrController {
   @Post('import')
   @ApiOperation({ summary: 'Импорт датасета для тестирования жюри' })
   importDataset(@Body() dto: ImportDatasetDto) {
-    return this.importService.importFullDataset(dto);
+    return this.importService.importDataset(dto, false);
   }
 }

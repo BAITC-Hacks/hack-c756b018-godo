@@ -29,6 +29,13 @@ export class EmployeeController {
     return this.employeeService.getRecommendations(id, user.id);
   }
 
+  @Post(':id/complete-event/:eventId')
+  @Roles(UserRole.EMPLOYEE)
+  @ApiOperation({ summary: 'Complete event and return updated profile' })
+  completeEvent(@Param('id') id: string, @Param('eventId') eventId: string, @CurrentUser() user: AuthUser) {
+    return this.employeeService.completeEvent(id, eventId, user.id);
+  }
+
   @Post('activities/complete')
   @Roles(UserRole.EMPLOYEE)
   @ApiOperation({ summary: 'Отметка о прохождении рекомендации и пересчет прогресса' })

@@ -51,7 +51,7 @@ export interface HrEmployeeSummary {
 }
 
 export interface HrAnalytics {
-  laggingSkills: Array<{ skillId: string; skillName: string; affectedEmployees: number }>;
+  laggingSkills: Array<{ skillId: string; skillName: string; affectedEmployees: number; totalGap: number }>;
   employeesAtRisk: HrEmployeeSummary[];
   withoutRecommendations: Array<{ id: string; name: string }>;
   participationByActivity: Array<{ eventId: string; title: string; completed: number; skipped: number; refused: number }>;
