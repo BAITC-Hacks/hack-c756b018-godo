@@ -5,6 +5,7 @@ import { ArrowRight, BookOpen, CheckCircle2, CircleHelp, Clock3, LoaderCircle, S
 import type { AIRecommendation, EmployeeProfile, SkillProgress } from '../../../backend/types';
 import { AppShell } from '@/components/app-shell';
 import { api } from '@/lib/api';
+<<<<<<< HEAD
 
 function SkillCard({ skill }: { skill: SkillProgress }) {
   const percentage = skill.requiredLevel > 0 ? Math.min(100, skill.currentLevel / skill.requiredLevel * 100) : 0;
@@ -23,6 +24,32 @@ function RecommendationCard({ recommendation, busy, onComplete }: { recommendati
     <p className="muted mt-1 text-xs">{recommendation.targetSkillName} · прогноз +{recommendation.predictedGain} ур.</p>
     <div className="mt-4 rounded-xl border border-[#dcefe3] bg-[#f5fbf7] p-4"><div className="flex items-center gap-2 text-xs font-extrabold text-[#18784b]"><Sparkles size={15}/> Почему этот шаг</div><p className="mt-2 text-sm leading-6 text-[#536b5a]">{recommendation.reason}</p></div>
     <button className="btn-primary mt-4 w-full" disabled={busy} onClick={() => onComplete(recommendation.eventId)}>{busy ? <LoaderCircle size={16} className="animate-spin"/> : <CheckCircle2 size={16}/>} {busy ? 'Сохраняем…' : 'Отметить как пройденное'}</button>
+=======
+import { useCareerStore } from '@/lib/store';
+import { getDemoRole, useDemoRole } from '@/lib/demo-role';
+
+const clamp = (value: number) => Math.max(0, Math.min(100, value));
+
+function SkillCard({ skill }: { skill: SkillProgress }) {
+  const percentage = skill.requiredLevel > 0 ? clamp(skill.currentLevel / skill.requiredLevel * 100) : 100;
+  const complete = skill.currentLevel >= skill.requiredLevel;
+  return <div className="rounded-xl border border-[#e2e8f8] p-4 transition hover:border-[#bfe8cf] hover:shadow-sm">
+    <div className="flex items-start justify-between gap-3"><div><div className="font-bold text-[14px]">{skill.skillName}</div><div className="mt-1 text-xs text-[#6e7a6e]">{skill.category === 'hard' ? 'Профессиональный навык' : 'Навык взаимодействия'}</div></div><span className={`rounded-full px-2 py-1 text-[11px] font-bold ${complete ? 'bg-[#f0f3ff] text-[#068149]' : 'bg-[#f1f4f1] text-[#58685d]'}`}>{complete ? 'Цель достигнута' : `${skill.currentLevel} / ${skill.requiredLevel}`}</span></div>
+    <div className="mt-5 progress-track"><motion.div className="progress-fill" initial={{ width: 0 }} animate={{ width: `${percentage}%` }} transition={{ duration: .8, ease: 'easeOut' }} /></div>
+    <div className="mt-2 flex justify-between text-[11px] text-[#6e7a6e]"><span>Текущий уровень {skill.currentLevel}</span><span>Цель {skill.requiredLevel}</span></div>
+  </div>;
+}
+
+function RecommendationCard({ recommendation, busy, saving, onComplete }: { recommendation: AIRecommendation; busy: boolean; saving: boolean; onComplete: (eventId: string) => void }) {
+  const role = useDemoRole();
+  return <article className="card overflow-hidden">
+    <div className="p-5"><div className="flex items-start justify-between gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f0f3ff] text-[#006b32]"><BookOpen size={21}/></div><span className="pill">{recommendation.priority === 1 ? 'Можно начать здесь' : 'Ещё один вариант'}</span></div>
+      <h3 className="mt-4 text-[16px] font-semibold leading-6">{recommendation.title}</h3><p className="mt-2 text-xs text-[#56615c]">Развивает: <span className="font-bold text-[#3b5c49]">{recommendation.targetSkillName}</span> · прогноз +{recommendation.predictedGain} ур.</p>
+      <div className="mt-5 rounded-xl border border-[#e2e8f8] bg-[#f0f3ff] p-4"><div className="flex items-center gap-2 text-xs font-semibold text-[#18784b]"><Sparkles size={15}/> Почему этот шаг подходит вам</div><p className="mt-2 text-[13px] leading-[1.65] text-[#536b5a]">{recommendation.reason}</p></div>
+      {role === 'employee' ? <><button className="btn-primary mt-5 w-full" onClick={() => onComplete(recommendation.eventId)} disabled={busy}>{saving ? <LoaderCircle size={16} className="animate-spin"/> : <CheckCircle2 size={16}/>} {saving ? 'Сохраняем результат…' : 'Отметить как пройденное'}</button>
+      <p className="muted mt-2 text-center text-xs">Уже прошли? Отметьте — пересчитаем прогресс.</p></> : <p className="muted mt-5 text-sm">Режим HR: прохождение отмечает сам сотрудник.</p>}
+    </div>
+>>>>>>> c7a3d14e677c716e4a4f22faac9b3f79dd93fe28
   </article>;
 }
 
@@ -78,10 +105,16 @@ export default function EmployeePage() {
     setNotice('');
   }
 
+<<<<<<< HEAD
   async function completeEvent(eventId: string) {
     if (!employeeId) return;
     setBusyEvent(eventId);
     setNotice('');
+=======
+  async function complete(eventId: string) {
+    if (getDemoRole() !== 'employee') return;
+    setBusyEvent(eventId); setError(''); setNotice('');
+>>>>>>> c7a3d14e677c716e4a4f22faac9b3f79dd93fe28
     try {
       const result = await api.complete({ employeeId, eventId });
       const [updatedProfile, updatedRecommendations] = await Promise.all([api.profile(employeeId), api.recommendations(employeeId)]);

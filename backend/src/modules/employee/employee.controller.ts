@@ -1,17 +1,16 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
 import { CompleteActivityDto } from './dto/complete-activity.dto';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { EmployeeScope, Roles } from '../../common/roles.decorator';
 import { UserRole } from '../../common/enums/role.enum';
 
 @ApiTags('Employee Portal')
-@ApiHeader({ name: 'x-user-id', description: 'ID пользователя', example: 'E0028' })
-@ApiHeader({ name: 'x-user-role', description: 'Роль (EMPLOYEE / HR)', example: 'EMPLOYEE' })
-@UseGuards(RolesGuard)
-@Controller('api/employees')
+@ApiHeader({ name: 'X-Employee-Id', description: 'ID текущего сотрудника (обязателен для employee)', example: 'E0028' })
+@ApiHeader({ name: 'X-Role', description: 'employee (по умолчанию) или hr', example: 'employee' })
+@EmployeeScope()
+@Controller(['api/employees', 'employees'])
 export class EmployeeController {
   constructor(private readonly employeeService: EmployeeService) {}
 
@@ -23,10 +22,10 @@ export class EmployeeController {
   }
 
   @Get(':id/recommendations')
-  @Roles(UserRole.EMPLOYEE)
+  @Roles(UserRole.EMPLOYEE, UserRole.HR)
   @ApiOperation({ summary: 'Получение AI-рекомендаций с понятным обоснованием (Explainability)' })
   getRecommendations(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.employeeService.getRecommendations(id, user.id);
+    return this.employeeService.getRecommendations(id, user.role === UserRole.HR ? id : user.id);
   }
 
   @Post(':id/complete-event/:eventId')

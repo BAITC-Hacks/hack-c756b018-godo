@@ -1,13 +1,14 @@
 import type { AIRecommendation, CompleteActivityDto, CompleteActivityResponse, EmployeeProfile, HrAnalytics, HrEmployeeSummary } from '../../backend/types';
+import { getDemoRole } from './demo-role';
 
-async function request<T>(path: string, role: 'EMPLOYEE' | 'HR', employeeId?: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, employeeId?: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,
     cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
-      'x-user-role': role,
-      ...(employeeId ? { 'x-user-id': employeeId } : {}),
+      'X-Role': getDemoRole(),
+      ...(employeeId ? { 'X-Employee-Id': employeeId } : {}),
       ...init?.headers,
     },
   });
@@ -23,11 +24,10 @@ async function request<T>(path: string, role: 'EMPLOYEE' | 'HR', employeeId?: st
 }
 
 export const api = {
-  profile: (id: string) => request<EmployeeProfile>(`/employees/${encodeURIComponent(id)}`, 'EMPLOYEE', id),
-  recommendations: (id: string) => request<AIRecommendation[]>(`/employees/${encodeURIComponent(id)}/recommendations`, 'EMPLOYEE', id),
-  complete: (dto: CompleteActivityDto) => request<CompleteActivityResponse>('/activities/complete', 'EMPLOYEE', dto.employeeId, { method: 'POST', body: JSON.stringify(dto) }),
-  analytics: () => request<HrAnalytics>('/hr/analytics', 'HR'),
-  employees: () => request<HrEmployeeSummary[]>('/hr/employees', 'HR'),
-  hrProfile: (id: string) => request<EmployeeProfile>(`/hr/employees/${encodeURIComponent(id)}`, 'HR'),
-  importDataset: (payload: { employees: unknown[]; events: unknown[]; skills: unknown[]; history: unknown[] }) => request<{ success: boolean; message: string }>('/hr/import', 'HR', undefined, { method: 'POST', body: JSON.stringify(payload) }),
+  profile: (id: string) => request<EmployeeProfile>(`/employees/${encodeURIComponent(id)}`, id),
+  recommendations: (id: string) => request<AIRecommendation[]>(`/employees/${encodeURIComponent(id)}/recommendations`, id),
+  complete: (dto: CompleteActivityDto) => request<CompleteActivityResponse>('/activities/complete', dto.employeeId, { method: 'POST', body: JSON.stringify(dto) }),
+  analytics: () => request<HrAnalytics>('/hr/analytics'),
+  employees: () => request<HrEmployeeSummary[]>('/hr/employees'),
+  importDataset: (payload: { employees: unknown[]; events: unknown[]; skills: unknown[]; history: unknown[] }) => request<{ success: boolean; message: string }>('/dataset/load', undefined, { method: 'POST', body: JSON.stringify(payload) }),
 };

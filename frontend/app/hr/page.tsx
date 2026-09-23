@@ -7,6 +7,7 @@ import { ArrowRight, BarChart3, Check, ChevronDown, CircleAlert, CloudUpload, Fi
 import type { HrAnalytics, HrEmployeeSummary } from '../../../backend/types';
 import { AppShell } from '@/components/app-shell';
 import { api } from '@/lib/api';
+import { getDemoRole, useDemoRole } from '@/lib/demo-role';
 
 type FilterValue = 'all' | 'risk' | 'none';
 type DatasetKey = 'employees' | 'events' | 'skills' | 'history';
@@ -75,6 +76,7 @@ function DatasetUploader({ onClose, onSuccess }: { onClose: () => void; onSucces
 }
 
 export default function HrPage() {
+  const role = useDemoRole();
   const [analytics, setAnalytics] = useState<HrAnalytics | null>(null);
   const [employees, setEmployees] = useState<HrEmployeeSummary[]>([]);
   const [filter, setFilter] = useState<FilterValue>('all');
@@ -85,12 +87,13 @@ export default function HrPage() {
   const [notice, setNotice] = useState('');
 
   const load = useCallback(async () => {
+    if (getDemoRole() !== 'hr') return;
     setLoading(true); setError('');
     try { const [nextAnalytics, nextEmployees] = await Promise.all([api.analytics(), api.employees()]); setAnalytics(nextAnalytics); setEmployees(nextEmployees); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Не удалось загрузить аналитику'); }
     finally { setLoading(false); }
   }, []);
-  useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
+  useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load, role]);
   const atRisk = employees.filter((employee) => employee.readinessScore < 60).length;
   const withoutRecommendations = employees.filter((employee) => !employee.hasRecommendations).length;
   const visible = useMemo(() => employees.filter((employee) => (filter === 'all' || (filter === 'risk' ? employee.readinessScore < 60 : !employee.hasRecommendations)) && `${employee.name} ${employee.role} ${employee.id}`.toLowerCase().includes(query.toLowerCase())), [employees, filter, query]);
