@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomUUID } from 'node:crypto';
@@ -62,8 +62,17 @@ export class RecommendationsService {
     const [requirements, history, events] = await Promise.all([
       this.requirements.find(), this.history.findBy({ employeeId }), this.events.find(),
     ]);
+    const missing: string[] = [];
+    if (!Object.keys(employee.skills).length) missing.push('навыки сотрудника');
+    if (!requirements.length) missing.push('требования по грейдам');
+    else if (!targetRequirementsForEmployee(requirements, employee.role, employee.targetGrade).size) missing.push(`требования для грейда ${employee.targetGrade}`);
+    if (!events.length) missing.push('активности');
+    if (missing.length) {
+      this.logger.warn(`Career AI skipped employeeId=${employeeId} reason=incomplete_dataset missing=${missing.join(',')}`);
+      throw new UnprocessableEntityException(`Нельзя подобрать рекомендации: отсутствуют ${missing.join(', ')}. Загрузите employees.json, skills.json и events.json через HR-экран.`);
+    }
     const candidates = this.selectTopCandidates(employee, requirements, history, events);
-    if (!candidates.length) { this.logger.log(`Career AI skipped employeeId=${employeeId} reason=no_eligible_candidates`); return []; }
+    if (!candidates.length) { this.logger.log(`Career AI skipped employeeId=${employeeId} reason=no_eligible_candidates employeeSkills=${Object.keys(employee.skills).length} requirements=${requirements.length} events=${events.length} history=${history.length}`); return []; }
     const selected = await this.selectWithOpenAi(employee, candidates);
     return selected.map(({ candidate, explanation }, index) => {
       const status = candidate.missedOrRefused ? `${candidate.missedOrRefused} пропуск/отказ по навыку` : 'пропусков и отказов по навыку нет';
@@ -85,7 +94,7 @@ export class RecommendationsService {
     this.logger.log(`OpenAI request start requestId=${requestId} model=${process.env.OPENAI_MODEL || 'gpt-4o-mini'} employeeId=${employee.id} candidates=${candidates.length}`);
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST', signal: AbortSignal.timeout(1500),
+        method: 'POST', signal: AbortSignal.timeout(8000),
         headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json', 'X-Client-Request-Id': requestId },
         body: JSON.stringify({ model: process.env.OPENAI_MODEL || 'gpt-4o-mini', max_tokens: Number(process.env.OPENAI_MAX_TOKENS) || 500, temperature: 0, response_format: { type: 'json_object' }, messages: [
           { role: 'system', content: 'You are a career recommendation reasoner. Consider target grade, skill gaps, attendance and event gains together. Choose 1 to 3 event IDs ONLY from candidates. Prefer critical target-grade gaps and reliable participation. Never invent facts or recommend an ignored skill. Return JSON object {"recommendations":[{"eventId":"...","reason":"one concise specific explanation in Russian"}]}.' },
@@ -104,6 +113,7 @@ export class RecommendationsService {
         return [{ candidate, explanation: typeof item.reason === 'string' ? item.reason.slice(0, 500) : '' }];
       }).slice(0, 3);
       if (!result.length) throw new Error('OpenAI returned no valid candidate IDs');
+      this.logger.log(`OpenAI recommendation applied requestId=${requestId} selected=${result.length}`);
       return result;
     } catch (error) {
       this.logger.warn(`OpenAI fallback requestId=${requestId} durationMs=${Date.now() - started} reason=${error instanceof Error ? error.message : String(error)}`);

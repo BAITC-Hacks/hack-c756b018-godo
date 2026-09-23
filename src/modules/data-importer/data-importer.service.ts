@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -50,9 +50,24 @@ function parseCsv(csv: string): InputRecord[] {
 }
 
 @Injectable()
-export class DataImporterService {
+export class DataImporterService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DataImporterService.name);
   constructor(private readonly dataSource: DataSource) {}
+
+  async onApplicationBootstrap(): Promise<void> {
+    const [employees, events, requirements] = await Promise.all([
+      this.dataSource.getRepository(EmployeeEntity).count(),
+      this.dataSource.getRepository(EventEntity).count(),
+      this.dataSource.getRepository(SkillRequirementEntity).count(),
+    ]);
+    if (employees || events || requirements) return;
+    try {
+      await this.importFromFiles();
+      this.logger.log('Demo dataset loaded into empty Career Quest storage');
+    } catch (error) {
+      this.logger.warn(`Automatic import skipped: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 
   async importFromFiles() {
     const directory = resolve(process.env.DATA_DIR || 'data');

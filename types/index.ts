@@ -14,6 +14,7 @@ export interface EmployeeProfile {
   targetGrade: string;
   tenureMonths: number;
   readinessScore: number;
+  dataStatus?: { hasEmployeeSkills: boolean; hasTargetRequirements: boolean; hasEvents: boolean };
   skills: SkillProgress[];
   history: Array<{ eventId: string; title: string; status: string; date: string }>;
 }
