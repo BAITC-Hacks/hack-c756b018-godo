@@ -1,0 +1,5 @@
+[
+  {"id":"EV_SYSTEM","title":"System Design Lab","type":"workshop","target_audience":["Middle","Junior"],"skills_developed":[{"skill_id":"SK_SYSTEM_DESIGN","gain":1,"max_level":5}]},
+  {"id":"EV_PYTHON","title":"Python Advanced","type":"training","target_audience":["Middle","Junior"],"skills_developed":[{"skill_id":"SK_PYTHON","gain":1,"max_level":5}]},
+  {"id":"EV_SPEAK","title":"Public Speaking Club","type":"club","target_audience":["Middle","Junior"],"skills_developed":[{"skill_id":"SK_PUBLIC_SPEAKING","gain":1,"max_level":5}]}
+]

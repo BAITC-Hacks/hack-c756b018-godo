@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { AIRecommendation, EmployeeProfile, SkillProgress } from '../../types';
+import type { AIRecommendation, EmployeeProfile, SkillProgress } from '../../backend/types';
 
 interface CareerState {
   profile: EmployeeProfile | null;

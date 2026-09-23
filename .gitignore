@@ -1,9 +1,0 @@
-node_modules/
-dist/
-db.sqlite
-db.sqlite-journal
-uploads/
-.env
-*.log
-.next/
-*.tsbuildinfo

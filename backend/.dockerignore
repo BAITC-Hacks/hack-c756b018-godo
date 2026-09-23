@@ -1,0 +1,9 @@
+.git
+.env
+.claude
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+.omx
+.omc

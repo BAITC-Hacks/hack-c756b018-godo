@@ -23,7 +23,7 @@ Career Quest помогает сотрудникам и HR-службе упра
 
 ## Стек
 
-**Backend** (`/src`, NestJS):
+**Backend** (`backend/src`, NestJS):
 - NestJS 11 + TypeScript, TypeORM 0.3, PostgreSQL 15 (SQLite — альтернатива)
 - Swagger (`@nestjs/swagger`) — интерактивная документация API
 - `class-validator` / `class-transformer` — валидация DTO
@@ -41,8 +41,11 @@ Career Quest помогает сотрудникам и HR-службе упра
 ### Вариант 1 — Docker (всё сразу)
 
 ```sh
+cd backend
 docker compose up --build
 ```
+
+Compose-файл лежит в `backend/` и поднимает три сервиса (frontend собирается из `../frontend`). В `backend/data` и `backend/demo` лежат готовые синтетические датасеты — их можно загрузить через HR-экран или API после старта.
 
 Поднимаются три сервиса:
 
@@ -64,16 +67,17 @@ ANTHROPIC_API_KEY: <ваш ключ>
 
 ### Вариант 2 — локально
 
-1. База данных — поднять только Postgres:
+1. База данных — поднять только Postgres (из каталога `backend/`):
 
    ```sh
+   cd backend
    docker compose up db
    ```
 
    Либо указать свой Postgres/Supabase через `DB_URL`
    (для Supabase SSL включается автоматически).
 
-2. Backend:
+2. Backend (из каталога `backend/`):
 
    ```sh
    npm install
@@ -112,7 +116,7 @@ ANTHROPIC_API_KEY: <ваш ключ>
 - `X-Employee-Id: E0028` — обязателен для сотрудника. Сотрудник видит только
   свой профиль, рекомендации и свои активности; несовпадение ID — `403`.
 - HR читает любые профили и аналитику без `X-Employee-Id`.
-- Маршруты `/hr/*` и `POST /dataset/load` — только для HR.
+- Маршруты `/hr/*`, `POST /hr/import` и `POST /api/admin/import` — только для HR.
 - `RolesGuard` подключён глобально через `APP_GUARD`; в продакшене перед ним
   добавляется JWT, правила `@Roles()` и проверки владельца не меняются.
 
@@ -130,7 +134,8 @@ ANTHROPIC_API_KEY: <ваш ключ>
 | POST  | `/activities/complete`           | employee | То же, по `employeeId` + `eventId` в теле       |
 | GET   | `/hr/employees`                  | hr       | Список сотрудников для HR-дашборда              |
 | GET   | `/hr/analytics`                  | hr       | Проседающие навыки и зона риска                 |
-| POST  | `/hr/import`, `/dataset/load`    | hr       | Импорт JSON-датасета для проверки жюри          |
+| POST  | `/hr/import`                     | hr       | Импорт JSON-датасета (employees, events, skills, history) |
+| POST  | `/api/admin/import`              | hr       | Полная замена данных из JSON-датасета           |
 
 ### Примеры запросов
 
@@ -149,7 +154,7 @@ curl -i http://localhost:3000/employees/E0028 -H "X-Role: hr"
 curl -i http://localhost:3000/hr/analytics -H "X-Role: hr"
 
 # Загрузка датасета жюри (JSON с массивами employees, events, skills, history)
-curl -i http://localhost:3000/dataset/load -H "X-Role: hr" \
+curl -i http://localhost:3000/api/admin/import -H "X-Role: hr" \
   -H "Content-Type: application/json" --data-binary @dataset.json
 ```
 
@@ -165,7 +170,7 @@ curl -i http://localhost:3000/dataset/load -H "X-Role: hr" \
 
 ## Проверка решения
 
-1. **Сборка и тесты**
+1. **Сборка и тесты** (из каталога `backend/`)
 
    ```sh
    npm run build          # сборка backend
@@ -186,8 +191,9 @@ curl -i http://localhost:3000/dataset/load -H "X-Role: hr" \
 
 2. **Сценарий ручной проверки**
 
-   1. `docker compose up --build`, дождаться старта всех сервисов.
-   2. Загрузить датасет: `POST /dataset/load` с `X-Role: hr` (см. пример выше).
+   1. `cd backend && docker compose up --build`, дождаться старта всех сервисов.
+   2. Загрузить датасет: `POST /api/admin/import` с `X-Role: hr`
+      (см. пример выше) или через HR-экран, файлы — из `backend/data`.
    3. Открыть http://localhost:3001, войти как сотрудник `E0028` —
        проверить профиль, разрыв навыков и AI-рекомендации с объяснением.
    4. Отметить рекомендацию пройденной — прогресс навыка должен вырасти.

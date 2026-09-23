@@ -1,4 +1,4 @@
-import type { AIRecommendation, CompleteActivityDto, CompleteActivityResponse, EmployeeProfile, HrAnalytics, HrEmployeeSummary } from '../../types';
+import type { AIRecommendation, CompleteActivityDto, CompleteActivityResponse, EmployeeProfile, HrAnalytics, HrEmployeeSummary } from '../../backend/types';
 import { getDemoRole } from './demo-role';
 
 async function request<T>(path: string, employeeId?: string, init?: RequestInit): Promise<T> {
