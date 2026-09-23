@@ -1,18 +1,14 @@
-export interface LegalArticle {
-  code: string;
-  title: string;
-  summary: string;
-}
-
-export interface CaseAnalysis {
-  facts: string[];
-  legalArticles: LegalArticle[];
-  evidenceProvided: string[];
-  evidenceMissing: string[];
-  nextSteps: string[];
-}
-
 export enum DocumentType {
   EOTINISH = 'eOtinish',
   ROVD = 'rovd',
+}
+
+export enum CaseState {
+  NEW = 'NEW',
+  COLLECTING_INFORMATION = 'COLLECTING_INFORMATION',
+  COLLECTING_EVIDENCE = 'COLLECTING_EVIDENCE',
+  ANALYZING = 'ANALYZING',
+  LEGAL_RESEARCH = 'LEGAL_RESEARCH',
+  ACTION_PLAN_READY = 'ACTION_PLAN_READY',
+  DRAFT_READY = 'DRAFT_READY',
 }
