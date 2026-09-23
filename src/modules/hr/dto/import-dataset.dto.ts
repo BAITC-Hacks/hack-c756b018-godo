@@ -1,21 +1,24 @@
-import { IsArray, IsNotEmpty } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsOptional } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ImportDatasetDto {
-  @ApiProperty({ description: 'Массив профилей сотрудников из employees.json' })
+  @ApiPropertyOptional({ description: 'Массив профилей сотрудников из employees.json' })
   @IsArray()
-  @IsNotEmpty()
-  employees: any[];
+  @IsOptional()
+  employees?: any[];
 
-  @ApiProperty({ description: 'Массив событий из events.json' })
+  @ApiPropertyOptional({ description: 'Массив событий из events.json' })
   @IsArray()
-  events: any[];
+  @IsOptional()
+  events?: any[];
 
-  @ApiProperty({ description: 'Массив навыков из skills.json' })
+  @ApiPropertyOptional({ description: 'Массив навыков из skills.json' })
   @IsArray()
-  skills: any[];
+  @IsOptional()
+  skills?: any[];
 
-  @ApiProperty({ description: 'История из activity_history.csv' })
+  @ApiPropertyOptional({ description: 'История из activity_history.csv' })
   @IsArray()
-  history: any[];
+  @IsOptional()
+  history?: any[];
 }

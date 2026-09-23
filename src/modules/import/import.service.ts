@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Employee } from '../../entities/employee.entity';
@@ -7,6 +7,7 @@ import { EmployeeSkill } from '../../entities/employee-skill.entity';
 import { Event } from '../../entities/event.entity';
 import { ActivityHistory } from '../../entities/activity-history.entity';
 import { ImportDatasetDto } from '../hr/dto/import-dataset.dto';
+import { ActivityStatus } from '../../common/enums/activity-status.enum';
 
 const GRADE_ORDER = ['Intern', 'Junior', 'Middle', 'Senior', 'Lead', 'Principal'];
 function nextGrade(grade: string) {
@@ -27,6 +28,21 @@ export class ImportService {
   constructor(private dataSource: DataSource) {}
 
   async importFullDataset(dto: ImportDatasetDto) {
+    const skills = dto.skills ?? [];
+    const events = dto.events ?? [];
+    const employees = dto.employees ?? [];
+    const history = dto.history ?? [];
+    if (![skills, events, employees, history].some((items) => items.length > 0)) {
+      throw new BadRequestException('Выберите хотя бы один непустой файл для импорта');
+    }
+    for (const [index, row] of history.entries()) {
+      if (!row.employee_id || !row.event_id || !Object.values(ActivityStatus).includes(String(row.status).toLowerCase() as ActivityStatus)) {
+        throw new BadRequestException(`Некорректная строка истории ${index + 1}: нужны employee_id, event_id и status (completed, skipped, refused)`);
+      }
+      if (row.date && Number.isNaN(new Date(row.date).getTime())) {
+        throw new BadRequestException(`Некорректная дата в строке истории ${index + 1}`);
+      }
+    }
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -34,9 +50,9 @@ export class ImportService {
     try {
       const existingSkills = await queryRunner.manager.find(Skill);
       const skillsById = new Map(existingSkills.map((skill) => [skill.id, skill as any]));
-      for (const skill of dto.skills) skillsById.set(skill.id || skill.skill_id, skill);
+      for (const skill of skills) skillsById.set(skill.id || skill.skill_id, skill);
       // 1. Сохраняем навыки
-      for (const s of dto.skills) {
+      for (const s of skills) {
         await queryRunner.manager.save(Skill, {
           id: s.id || s.skill_id,
           name: s.name || s.title || s.id || s.skill_id,
@@ -46,7 +62,7 @@ export class ImportService {
       }
 
       // 2. Сохраняем события
-      for (const ev of dto.events) {
+      for (const ev of events) {
         await queryRunner.manager.save(Event, {
           id: ev.id || ev.event_id,
           title: ev.title,
@@ -61,7 +77,7 @@ export class ImportService {
       }
 
       // 3. Сохраняем сотрудников и их навыки
-      for (const emp of dto.employees) {
+      for (const emp of employees) {
         const grade = emp.grade || emp.currentGrade || 'Middle';
         const targetGrade = emp.target_grade || emp.targetGrade || nextGrade(grade);
         const progress = Object.entries(emp.skills || {}).map(([id, level]) => {
@@ -95,12 +111,17 @@ export class ImportService {
       }
 
       // 4. История
-      if (dto.history) {
-        for (const h of dto.history) {
+      if (history.length) {
+        const knownEmployees = new Set((await queryRunner.manager.find(Employee)).map((item) => item.id));
+        const knownEvents = new Set((await queryRunner.manager.find(Event)).map((item) => item.id));
+        for (const h of history) {
+          if (!knownEmployees.has(h.employee_id) || !knownEvents.has(h.event_id)) {
+            throw new BadRequestException(`История ссылается на неизвестного сотрудника ${h.employee_id} или событие ${h.event_id}. Сначала загрузите профили и активности.`);
+          }
           await queryRunner.manager.save(ActivityHistory, {
             employeeId: h.employee_id,
             eventId: h.event_id,
-            status: h.status,
+            status: String(h.status).toLowerCase() as ActivityStatus,
             date: h.date ? new Date(h.date) : new Date(),
           });
         }

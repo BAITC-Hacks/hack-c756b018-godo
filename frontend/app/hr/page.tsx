@@ -28,6 +28,9 @@ function parseCsv(content: string): Record<string, string>[] {
   }
   row.push(cell); if (row.some((value) => value.trim())) rows.push(row);
   const headers = (rows.shift() || []).map((value) => value.trim().replace(/^\uFEFF/, ''));
+  if (!['employee_id', 'event_id', 'status'].every((key) => headers.includes(key))) {
+    throw new Error('CSV должен содержать столбцы employee_id, event_id и status');
+  }
   return rows.map((values) => Object.fromEntries(headers.map((key, index) => [key, values[index]?.trim() || ''])));
 }
 
@@ -74,21 +77,22 @@ function DatasetUploader({ onClose, onSuccess }: { onClose: () => void; onSucces
       setFiles((current) => ({ ...current, ...next }));
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Не удалось прочитать файлы'); }
   }, []);
+  const hasData = Object.values(files).some((items) => items.length > 0);
   async function submit() {
-    if (!files.employees) return;
+    if (!hasData) return;
     setBusy(true); setError('');
     try {
-      await api.importDataset({ employees: files.employees, events: files.events || [], skills: files.skills || (files.events ? deriveSkills(files.employees, files.events) : []), history: files.history || [] });
+      await api.importDataset({ employees: files.employees || [], events: files.events || [], skills: files.skills || (files.events ? deriveSkills(files.employees || [], files.events) : []), history: files.history || [] });
       onSuccess(); onClose();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Не удалось загрузить датасет'); }
     finally { setBusy(false); }
   }
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-[#0c2419]/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div role="dialog" aria-modal="true" aria-labelledby="upload-title" className="card w-full max-w-[540px] p-6 md:p-8"><div className="flex items-start justify-between"><div><div className="eyebrow">ДАННЫЕ КОМАНДЫ</div><h2 id="upload-title" className="mt-1 text-2xl font-extrabold tracking-tight">Добавить данные</h2><p className="muted mt-2 text-sm">Загрузите сотрудников и активности, чтобы увидеть картину развития команды.</p></div><button aria-label="Закрыть" className="rounded-lg p-2 hover:bg-[#f2f5f2]" onClick={onClose}><X size={19}/></button></div>
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-[#0c2419]/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div role="dialog" aria-modal="true" aria-labelledby="upload-title" className="card w-full max-w-[540px] p-6 md:p-8"><div className="flex items-start justify-between"><div><div className="eyebrow">ДАННЫЕ КОМАНДЫ</div><h2 id="upload-title" className="mt-1 text-2xl font-extrabold tracking-tight">Добавить данные</h2><p className="muted mt-2 text-sm">Добавьте профили, активности или историю участия. Файлы можно загружать по отдельности.</p></div><button aria-label="Закрыть" className="rounded-lg p-2 hover:bg-[#f2f5f2]" onClick={onClose}><X size={19}/></button></div>
     <div className={`mt-6 rounded-2xl border-2 border-dashed p-8 text-center transition ${dragging ? 'border-[#00a859] bg-[#effaf3]' : 'border-[#cbded2] bg-[#f8fbf9]'}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); void receiveFiles(event.dataTransfer.files); }}><div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[#e5f6eb] text-[#00a859]"><CloudUpload size={24}/></div><p className="mt-4 text-sm font-bold">Перетащите JSON и activity_history.csv сюда</p><p className="muted mt-1 text-xs">или выберите файлы с компьютера</p><label className="btn-secondary mt-4 cursor-pointer">Выбрать файлы<input className="sr-only" type="file" accept=".json,.csv,application/json,text/csv" multiple onChange={(event) => { if (event.target.files) void receiveFiles(event.target.files); event.target.value = ''; }}/></label></div>
-    <div className="mt-5 grid grid-cols-2 gap-2">{(['employees', 'events', 'skills', 'history'] as DatasetKey[]).map((key) => <div key={key} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${files[key] ? 'bg-[#eaf8f0] text-[#087c47]' : 'bg-[#f3f5f3] text-[#809087]'}`}>{files[key] ? <Check size={14}/> : <FileJson2 size={14}/>} {key}.json <span className="ml-auto">{files[key]?.length ?? (key === 'employees' ? 'нужен' : 'опц.')}</span></div>)}</div>
-    <p className="muted mt-4 text-xs leading-5">Для первого импорта добавьте сотрудников, события и навыки. Позже можно загрузить только новые профили и историю CSV: каталог и требования сохраняются.</p>
+    <div className="mt-5 grid grid-cols-2 gap-2">{(['employees', 'events', 'skills', 'history'] as DatasetKey[]).map((key) => <div key={key} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${files[key] ? 'bg-[#eaf8f0] text-[#087c47]' : 'bg-[#f3f5f3] text-[#809087]'}`}>{files[key] ? <Check size={14}/> : <FileJson2 size={14}/>} {key === 'history' ? 'activity_history.csv' : `${key}.json`} <span className="ml-auto">{files[key]?.length ?? 'опц.'}</span></div>)}</div>
+    <p className="muted mt-4 text-xs leading-5">Можно загрузить один файл: например, activity_history.csv к уже существующим сотрудникам и событиям. Для первой загрузки добавьте также профили, навыки и активности.</p>
     {error && <div role="alert" className="error-banner mt-4">{error}</div>}
-    <div className="mt-6 flex justify-end gap-2"><button className="btn-secondary" onClick={onClose}>Отмена</button><button className="btn-primary" disabled={!files.employees || busy} onClick={() => void submit()}>{busy ? <LoaderCircle size={16} className="animate-spin"/> : <UploadCloud size={16}/>} Загрузить данные</button></div>
+    <div className="mt-6 flex justify-end gap-2"><button className="btn-secondary" onClick={onClose}>Отмена</button><button className="btn-primary" disabled={!hasData || busy} onClick={() => void submit()}>{busy ? <LoaderCircle size={16} className="animate-spin"/> : <UploadCloud size={16}/>} Загрузить данные</button></div>
   </div></div>;
 }
 
