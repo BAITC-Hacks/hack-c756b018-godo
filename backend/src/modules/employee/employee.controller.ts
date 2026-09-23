@@ -19,7 +19,7 @@ export class EmployeeController {
   @Roles(UserRole.EMPLOYEE, UserRole.HR)
   @ApiOperation({ summary: 'Получение профиля сотрудника и его навыков' })
   getProfile(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.employeeService.getProfile(id, user.id);
+    return this.employeeService.getProfile(id, user.id, user.role);
   }
 
   @Get(':id/recommendations')

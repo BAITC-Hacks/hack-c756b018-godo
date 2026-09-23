@@ -19,11 +19,11 @@ export class EmployeeService {
     private readonly recommendations: RecommendationsService,
     private readonly progress: ProgressService,
   ) {}
-  private checkAccess(employeeId: string, requestorId: string) {
-    if (employeeId !== requestorId) throw new ForbiddenException('Доступ к данным другого сотрудника запрещён');
+  private checkAccess(employeeId: string, requestorId: string, requestorRole: string) {
+    if (requestorRole !== 'HR' && employeeId !== requestorId) throw new ForbiddenException('Доступ к данным другого сотрудника запрещён');
   }
-  async getProfile(employeeId: string, requestorId: string) {
-    this.checkAccess(employeeId, requestorId);
+  async getProfile(employeeId: string, requestorId: string, requestorRole = 'EMPLOYEE') {
+    this.checkAccess(employeeId, requestorId, requestorRole);
     const employee = await this.employees.findOneBy({ id: employeeId });
     if (!employee) throw new NotFoundException('Сотрудник не найден');
     const [requirements, history, events] = await Promise.all([this.requirements.find(), this.histories.find({ where: { employeeId }, order: { date: 'DESC' } }), this.events.find()]);
@@ -34,11 +34,11 @@ export class EmployeeService {
     return { id: employee.id, name: employee.name, role: employee.role, currentGrade: employee.currentGrade, targetGrade: employee.targetGrade, tenureMonths: employee.tenureMonths, readinessScore: readinessScore(employee.skills, target), dataStatus: { hasEmployeeSkills: Object.keys(employee.skills).length > 0, hasTargetRequirements: target.size > 0, hasEvents: events.length > 0 }, skills: [...skillIds].map((skillId) => ({ skillId, skillName: requirementById.get(skillId)?.name ?? skillId, category: requirementById.get(skillId)?.category === 'soft' ? 'soft' : 'hard', currentLevel: employee.skills[skillId] ?? 0, requiredLevel: target.get(skillId)?.level ?? 0 })), history: history.map((entry) => ({ eventId: entry.eventId, title: eventById.get(entry.eventId)?.title ?? entry.eventId, status: entry.status.toLowerCase(), date: entry.date })) };
   }
   async getRecommendations(employeeId: string, requestorId: string) {
-    this.checkAccess(employeeId, requestorId);
+    this.checkAccess(employeeId, requestorId, 'EMPLOYEE');
     return this.recommendations.getRecommendationsForEmployee(employeeId);
   }
   async completeEvent(employeeId: string, eventId: string, requestorId: string) {
-    this.checkAccess(employeeId, requestorId);
+    this.checkAccess(employeeId, requestorId, 'EMPLOYEE');
     await this.progress.completeEvent(employeeId, eventId);
     return this.getProfile(employeeId, requestorId);
   }
