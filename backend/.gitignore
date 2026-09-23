@@ -7,3 +7,5 @@ uploads/
 *.log
 .next/
 *.tsbuildinfo
+.claude/
+.omc/tmp/
