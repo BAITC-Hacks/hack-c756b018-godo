@@ -21,16 +21,26 @@ import { ImportModule } from './modules/import/import.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: () => ({
-        type: 'postgres',
-        host: process.env.DB_HOST || 'localhost',
-        port: Number(process.env.DB_PORT) || 5432,
-        username: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'postgres_password',
-        database: process.env.DB_NAME || 'career_quest',
-        entities: [Employee, Skill, EmployeeSkill, Event, ActivityHistory],
-        synchronize: true, // Включаем авто-миграции для быстрого старта на хакатоне
-      }),
+      useFactory: () => {
+        const dbUrl = process.env.DB_URL;
+        const useSsl =
+          process.env.DB_SSL === 'true' || Boolean(dbUrl?.includes('supabase'));
+        return {
+          type: 'postgres' as const,
+          ...(dbUrl
+            ? { url: dbUrl }
+            : {
+                host: process.env.DB_HOST || 'localhost',
+                port: Number(process.env.DB_PORT) || 5432,
+                username: process.env.DB_USER || 'postgres',
+                password: process.env.DB_PASSWORD || 'postgres_password',
+                database: process.env.DB_NAME || 'career_quest',
+              }),
+          ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+          entities: [Employee, Skill, EmployeeSkill, Event, ActivityHistory],
+          synchronize: true, // Включаем авто-миграции для быстрого старта на хакатоне
+        };
+      },
     }),
     EmployeeModule,
     HrModule,
