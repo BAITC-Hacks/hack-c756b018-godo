@@ -28,5 +28,6 @@ export const api = {
   complete: (dto: CompleteActivityDto) => request<CompleteActivityResponse>('/activities/complete', 'EMPLOYEE', dto.employeeId, { method: 'POST', body: JSON.stringify(dto) }),
   analytics: () => request<HrAnalytics>('/hr/analytics', 'HR'),
   employees: () => request<HrEmployeeSummary[]>('/hr/employees', 'HR'),
+  hrProfile: (id: string) => request<EmployeeProfile>(`/hr/employees/${encodeURIComponent(id)}`, 'HR'),
   importDataset: (payload: { employees: unknown[]; events: unknown[]; skills: unknown[]; history: unknown[] }) => request<{ success: boolean; message: string }>('/hr/import', 'HR', undefined, { method: 'POST', body: JSON.stringify(payload) }),
 };
