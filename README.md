@@ -1,20 +1,21 @@
 # Career Quest
 
-Веб-приложение для развития сотрудников: профиль, траектория к следующему грейду, объяснимые рекомендации, прогресс после активности и HR-аналитика. Данные в `data/` синтетические.
+Веб-приложение для развития сотрудников: профиль, траектория к следующему грейду, объяснимые рекомендации, прогресс после активности и HR-аналитика. Сервер, Docker Compose и синтетические данные находятся в `backend/`; клиент — в `frontend/`.
 
 ## Запуск
 
 ```bash
+cd backend
 docker compose up --build
 ```
 
-Откройте [приложение](http://localhost:3001) и [Swagger](http://localhost:3000/docs). При первом запуске, если таблицы Career Quest пусты, демоданные из `data/` загружаются автоматически. Для замены данных файлами стартового кита используйте HR-экран или вызовите:
+Откройте [приложение](http://localhost:3001) и [Swagger](http://localhost:3000/docs). При первом запуске, если таблицы Career Quest пусты, демоданные из `backend/data/` загружаются автоматически. Переменные OpenAI задаются в `backend/.env`. Для замены данных файлами стартового кита используйте HR-экран или вызовите:
 
 ```bash
 curl -X POST http://localhost:3000/api/admin/import -H 'x-user-role: HR'
 ```
 
-`POST /api/admin/import` читает `./data/employees.json`, `events.json`, `skills.json`, `activity_history.csv` и **заменяет** данные четырёх таблиц Career Quest в одной транзакции. Контейнер монтирует каталог `data/`, поэтому проверочные файлы жюри можно положить туда и повторить вызов. `POST /api/hr/import` принимает JSON с массивами `employees`, `events`, `skills`, `history` и обновляет только переданные записи; это маршрут загрузки отдельных файлов из интерфейса.
+`POST /api/admin/import` читает `backend/data/employees.json`, `events.json`, `skills.json`, `activity_history.csv` и **заменяет** данные четырёх таблиц Career Quest в одной транзакции. Контейнер монтирует каталог `backend/data/`, поэтому проверочные файлы жюри можно положить туда и повторить вызов. `POST /api/hr/import` принимает JSON с массивами `employees`, `events`, `skills`, `history` и обновляет только переданные записи; это маршрут загрузки отдельных файлов из интерфейса.
 
 ## Хранение и расчёт
 
@@ -30,13 +31,14 @@ PostgreSQL содержит `career_employees` с навыками JSONB, `caree
 
 ## Проверка
 
-После импорта `data/` запросите рекомендации для `E0028` с заголовками `x-user-role: EMPLOYEE`, `x-user-id: E0028`. Public Speaking трижды пропущен и не должен попасть в ответ; System Design имеет разрыв 2 до Senior и должен быть предложен. Затем завершите `EV_SYSTEM` и проверьте, что уровень вырос с 2 до 3 и готовность изменилась.
+После импорта `backend/data/` запросите рекомендации для `E0028` с заголовками `x-user-role: EMPLOYEE`, `x-user-id: E0028`. Public Speaking трижды пропущен и не должен попасть в ответ; System Design имеет разрыв 2 до Senior и должен быть предложен. Затем завершите `EV_SYSTEM` и проверьте, что уровень вырос с 2 до 3 и готовность изменилась.
 
 ```bash
+cd backend
 npm ci
 npm test -- --runInBand
 npm run build
-cd frontend
+cd ../frontend
 npm ci
 npm run typecheck
 npm run build

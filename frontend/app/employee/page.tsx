@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, Award, BookOpen, Check, CheckCircle2, CircleHelp, Clock3, Lightbulb, LoaderCircle, Sparkles, Target, TrendingUp, UserRound } from 'lucide-react';
-import type { AIRecommendation, SkillProgress } from '../../../types';
+import type { AIRecommendation, SkillProgress } from '../../../backend/types';
 import { AppShell } from '@/components/app-shell';
 import { api } from '@/lib/api';
 import { useCareerStore } from '@/lib/store';

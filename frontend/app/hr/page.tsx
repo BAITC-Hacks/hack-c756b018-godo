@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, BarChart3, Check, ChevronDown, CircleAlert, CloudUpload, FileJson2, Filter, LoaderCircle, Search, UploadCloud, Users, X } from 'lucide-react';
-import type { HrAnalytics, HrEmployeeSummary } from '../../../types';
+import type { HrAnalytics, HrEmployeeSummary } from '../../../backend/types';
 import { AppShell } from '@/components/app-shell';
 import { api } from '@/lib/api';
 

@@ -1,4 +1,4 @@
-import type { AIRecommendation, CompleteActivityDto, CompleteActivityResponse, EmployeeProfile, HrAnalytics, HrEmployeeSummary } from '../../types';
+import type { AIRecommendation, CompleteActivityDto, CompleteActivityResponse, EmployeeProfile, HrAnalytics, HrEmployeeSummary } from '../../backend/types';
 
 async function request<T>(path: string, role: 'EMPLOYEE' | 'HR', employeeId?: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
